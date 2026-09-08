@@ -210,7 +210,12 @@ function orderRows(g, blocksByLevel, levels) {
   const commit = (level, blocks) => {
     result.set(level, blocks);
     blocks.forEach((block, index) => {
-      for (const memberId of block.members) position.set(memberId, index);
+      const personIds = block.items
+        .filter((item) => item.type === NodeType.PERSON)
+        .map((item) => item.entityId);
+      personIds.forEach((memberId, memberIndex) => {
+        position.set(memberId, index + memberIndex / personIds.length);
+      });
     });
   };
 

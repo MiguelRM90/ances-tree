@@ -336,6 +336,58 @@ describe('layout', () => {
         children[2].id,
       ]);
     });
+
+    /**
+     * When two people marry, each partner's parents in the row above must
+     * align with their child's position in the couple — even if the parents'
+     * birth dates would otherwise sort them in the opposite direction.
+     */
+    it('orders ancestor couples to match their children and avoid crossing lines', () => {
+      const focal = person('Child', { born: '1940' });
+      // Mother born earlier (1910) -> placed on left
+      const mother = person('Mother', { sex: Sex.FEMALE, born: '1910' });
+      // Father born later (1915) -> placed on right
+      const father = person('Father', { sex: Sex.MALE, born: '1915' });
+
+      // Maternal grandparents born LATER than paternal grandparents
+      const matGrandpa = person('MatGrandpa', { born: '1885' });
+      const matGrandma = person('MatGrandma', { born: '1887' });
+      const patGrandpa = person('PatGrandpa', { born: '1875' });
+      const patGrandma = person('PatGrandma', { born: '1877' });
+
+      const uParents = createUnion({ partner1Id: mother.id, partner2Id: father.id });
+      const uMat = createUnion({ partner1Id: matGrandpa.id, partner2Id: matGrandma.id });
+      const uPat = createUnion({ partner1Id: patGrandpa.id, partner2Id: patGrandma.id });
+
+      const data = project({
+        persons: [focal, mother, father, matGrandpa, matGrandma, patGrandpa, patGrandma],
+        unions: [uParents, uMat, uPat],
+        parentChildren: [
+          createParentChild({ parentId: mother.id, childId: focal.id, unionId: uParents.id }),
+          createParentChild({ parentId: father.id, childId: focal.id, unionId: uParents.id }),
+          createParentChild({ parentId: matGrandpa.id, childId: mother.id, unionId: uMat.id }),
+          createParentChild({ parentId: matGrandma.id, childId: mother.id, unionId: uMat.id }),
+          createParentChild({ parentId: patGrandpa.id, childId: father.id, unionId: uPat.id }),
+          createParentChild({ parentId: patGrandma.id, childId: father.id, unionId: uPat.id }),
+        ],
+        settings: { focalPersonId: focal.id, maxGenerationsUp: 2, maxGenerationsDown: 0 },
+      });
+
+      const g = buildIndexes(data);
+      const layout = buildLayout(g, focal.id, { up: 2, down: 0 });
+
+      const rowMinus2 = layout.rows
+        .find((r) => r.level === -2)
+        .nodes.filter((n) => n.type === NodeType.PERSON)
+        .map((n) => n.entityId);
+
+      // Maternal grandparents must sit to the left of paternal grandparents
+      // because Mother is to the left of Father at level -1.
+      expect(rowMinus2.indexOf(matGrandpa.id)).to.be.below(
+        rowMinus2.indexOf(patGrandpa.id),
+        'maternal grandparents stay on the left above mother',
+      );
+    });
   });
 
   /**
