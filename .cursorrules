@@ -1,0 +1,23 @@
+# Cursor Rules for ances-tree
+
+You are working on `ances-tree`, a privacy-first, offline-ready browser-based family tree application with zero backend.
+
+## Inviolable Rules
+1. Zero runtime dependencies: No npm runtime packages. Vanilla JS, Web Components, native browser APIs only.
+2. No user-data innerHTML: User data (names, dates, GEDCOM fields, notes) must never be injected via innerHTML. Use textContent or createElement.
+3. Strict dependency flow: UI -> Store -> Domain -> Storage.
+   - `src/domain/` contains 100% pure functions. Never import DOM, IndexedDB, or the Store into `domain/`.
+   - Layout calculation is mathematical and never uses `getBoundingClientRect()`.
+4. Genealogy validation: Almost everything is a `WARNING`. Only structural graph corruption (cycles, self-parent, duplicate edges, >2 bio parents) is `BLOCKED`.
+5. Dates: Never modify or discard the `raw` date string input by the user.
+
+## Code Style
+- Language: English for all code, identifiers, comments, tests, and commits.
+- Web Components: Extend `HTMLElement`, use kebab-case custom element names.
+- Private fields: Use `#` (private fields), not `_`.
+- Styling: Constructable stylesheets via `css?inline` and `sheet()`. Never inline `<style>` tags (breaks strict CSP).
+- UI Strings: Always use locale dicts from `src/config/locales/` (`en.js`, `es.js`).
+- IDs: Always use `crypto.randomUUID()`.
+- Limits: Centralized in `src/config/limits.js`.
+
+For detailed architecture specs, refer to `docs/` and `AGENTS.md`.

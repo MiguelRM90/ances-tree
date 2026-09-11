@@ -1,6 +1,6 @@
 /**
  * Every threshold in the project lives here. No stray numeric constants
- * scattered through the code (see CLAUDE.md, conventions).
+ * scattered through the code (see AGENTS.md, conventions).
  */
 
 // --- Maximum file sizes (storage.md, limits section) ---

@@ -106,13 +106,13 @@ refuses to open.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173/AncesTree/
-npm test         # 248 tests, in a real browser
+npm run dev      # http://localhost:5173/ances-tree/
+npm test         # 265 tests, in a real browser
 npm run lint
 npm run build    # dist/, ready for GitHub Pages
 ```
 
-The `/AncesTree/` in the URL is not optional: the build is configured for a
+The `/ances-tree/` in the URL is not optional: the build is configured for a
 project page of that name.
 
 ### Trying it at scale

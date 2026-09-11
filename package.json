@@ -5,6 +5,10 @@
   "type": "module",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MiguelRM90/ances-tree.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

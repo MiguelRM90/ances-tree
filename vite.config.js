@@ -47,9 +47,9 @@ function cspPlugin() {
 }
 
 export default defineConfig({
-  // GitHub Pages serves the project under /AncesTree/. Without this, assets
+  // GitHub Pages serves the project under /ances-tree/. Without this, assets
   // resolve against the domain root and never load.
-  base: '/AncesTree/',
+  base: '/ances-tree/',
   plugins: [cspPlugin()],
   build: {
     target: 'esnext',
