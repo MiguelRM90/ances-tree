@@ -11,7 +11,7 @@ import { base, sheet } from '../styles/sheets.js';
 import css from './app-root.css?inline';
 import { S, LOCALES, locale, setLocale } from '../../config/strings.js';
 import { describeIssue } from '../issue-text.js';
-import { mediaOf, displayName } from '../../domain/graph/queries.js';
+import { photosOf, documentsOf, displayName } from '../../domain/graph/queries.js';
 import { store } from '../../store/store.js';
 import * as actions from '../../store/actions.js';
 import './tree-canvas.js';
@@ -115,6 +115,9 @@ export class AppRoot extends HTMLElement {
     this.addEventListener('photos:add', this.#onPhotosAdd);
     this.addEventListener('photo:portrait', this.#onPhotoPortrait);
     this.addEventListener('photo:remove', this.#onPhotoRemove);
+    this.addEventListener('documents:add', this.#onDocumentsAdd);
+    this.addEventListener('document:remove', this.#onDocumentRemove);
+    this.addEventListener('document:download', this.#onDocumentDownload);
 
     this.#render();
   }
@@ -138,6 +141,9 @@ export class AppRoot extends HTMLElement {
     this.removeEventListener('photos:add', this.#onPhotosAdd);
     this.removeEventListener('photo:portrait', this.#onPhotoPortrait);
     this.removeEventListener('photo:remove', this.#onPhotoRemove);
+    this.removeEventListener('documents:add', this.#onDocumentsAdd);
+    this.removeEventListener('document:remove', this.#onDocumentRemove);
+    this.removeEventListener('document:download', this.#onDocumentDownload);
   }
 
   /** The requirements screen is set by main.js before anything else starts. */
@@ -180,7 +186,11 @@ export class AppRoot extends HTMLElement {
         this.#menu(S.toolbar.transfer, [
           { label: S.toolbar.exportZip, action: () => this.#exportArchive() },
           { label: S.toolbar.importZip, action: () => this.#startImport() },
-          { label: S.toolbar.exportGedcom, action: () => this.#exportGedcom(), separatorBefore: true },
+          {
+            label: S.toolbar.exportGedcom,
+            action: () => this.#exportGedcom(),
+            separatorBefore: true,
+          },
           { label: S.toolbar.importGedcom, action: () => this.#importGedcom() },
         ]),
 
@@ -408,7 +418,8 @@ export class AppRoot extends HTMLElement {
       this.shadowRoot.append(this.#editor);
     }
     this.#editor.open(person, {
-      photos: mediaOf(store.graph, personId),
+      photos: photosOf(store.graph, personId),
+      documents: documentsOf(store.graph, personId),
       issues: store.issuesFor(personId),
       graph: store.graph,
       isNew,
@@ -465,7 +476,7 @@ export class AppRoot extends HTMLElement {
       const result = await actions.addPhotosFor(personId);
       if (result.cancelled) return;
 
-      this.#editor?.refreshPhotos(mediaOf(store.graph, personId));
+      this.#editor?.refreshPhotos(photosOf(store.graph, personId));
       this.#reportPhotoImport(result);
     });
   };
@@ -473,13 +484,13 @@ export class AppRoot extends HTMLElement {
   #onPhotoPortrait = (event) => {
     const { mediaId, personId } = event.detail;
     actions.setPortrait(mediaId, personId);
-    this.#editor?.refreshPhotos(mediaOf(store.graph, personId));
+    this.#editor?.refreshPhotos(photosOf(store.graph, personId));
   };
 
   #onPhotoRemove = (event) => {
     const { mediaId, personId } = event.detail;
     actions.removePhotoFrom(mediaId, personId);
-    this.#editor?.refreshPhotos(mediaOf(store.graph, personId));
+    this.#editor?.refreshPhotos(photosOf(store.graph, personId));
   };
 
   /** One unreadable file must not hide the fact that the others worked. */
@@ -502,6 +513,56 @@ export class AppRoot extends HTMLElement {
     this.#notices.show({
       severity: failed.length > 0 ? 'warning' : 'success',
       title: S.editor.photosAdded(added),
+      detail,
+    });
+  }
+
+  // --- Documents -----------------------------------------------------------
+
+  #onDocumentsAdd = (event) => {
+    const { personId } = event.detail;
+
+    void this.#guarded(async () => {
+      const result = await actions.addDocumentsFor(personId);
+      if (result.cancelled) return;
+
+      this.#editor?.refreshDocuments(documentsOf(store.graph, personId));
+      this.#reportDocumentImport(result);
+    });
+  };
+
+  #onDocumentRemove = (event) => {
+    const { mediaId, personId } = event.detail;
+    actions.removeDocumentFrom(mediaId, personId);
+    this.#editor?.refreshDocuments(documentsOf(store.graph, personId));
+  };
+
+  #onDocumentDownload = (event) => {
+    const { mediaId } = event.detail;
+    void this.#guarded(async () => {
+      await actions.downloadDocument(mediaId);
+    });
+  };
+
+  #reportDocumentImport({ added = 0, reused = 0, failed = [] }) {
+    const detail = [
+      reused > 0 ? S.editor.documentsReused(reused) : '',
+      failed.length > 0 ? S.editor.documentsFailed(failed.length) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    if (added === 0 && reused === 0) {
+      this.#notices.show({
+        severity: 'error',
+        title: failed[0]?.message ?? S.editor.documentsFailed(failed.length),
+      });
+      return;
+    }
+
+    this.#notices.show({
+      severity: failed.length > 0 ? 'warning' : 'success',
+      title: S.editor.documentsAdded(added),
       detail,
     });
   }
@@ -784,10 +845,7 @@ export class AppRoot extends HTMLElement {
 
           el('div', {
             class: 'actions',
-            children: [
-              el('div', { class: 'named', children: [name, create] }),
-              importZip,
-            ],
+            children: [el('div', { class: 'named', children: [name, create] }), importZip],
           }),
         ],
       }),

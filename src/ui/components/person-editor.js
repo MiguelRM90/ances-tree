@@ -24,6 +24,7 @@ export class PersonEditor extends HTMLElement {
   #fields = {};
   #person = null;
   #photos = [];
+  #documents = [];
   #issues = [];
   #graph = null;
   #resolvePhoto = null;
@@ -45,15 +46,17 @@ export class PersonEditor extends HTMLElement {
   /**
    * Opens the editor for a person. The caller keeps ownership of the data.
    * @param {object} person
-   * @param {{photos?: object[], issues?: object[], graph?: object, isNew?: boolean}} [context]
+   * @param {{photos?: object[], documents?: object[], issues?: object[], graph?: object, isNew?: boolean}} [context]
    */
-  open(person, { photos = [], issues = [], graph = null, isNew = false } = {}) {
+  open(person, { photos = [], documents = [], issues = [], graph = null, isNew = false } = {}) {
     this.#person = person;
     this.#photos = photos;
+    this.#documents = documents;
     this.#issues = issues;
     this.#graph = graph;
     this.#isNew = isNew;
     this.#renderGallery();
+    this.#renderDocuments();
     this.#renderReview();
 
     this.#fields.firstName.value = person.firstName;
@@ -99,7 +102,6 @@ export class PersonEditor extends HTMLElement {
       this.close();
     });
 
-
     this.#fields.firstName = input();
     this.#fields.lastName = input();
     this.#fields.secondLastName = input();
@@ -112,6 +114,7 @@ export class PersonEditor extends HTMLElement {
     this.#fields.notes = document.createElement('textarea');
     this.#fields.placeholderNote = el('p', { class: 'note', text: S.editor.materialise });
     this.#fields.gallery = el('div', { class: 'gallery' });
+    this.#fields.documentsList = el('div', { class: 'documents-list' });
     this.#fields.review = el('div', { class: 'issues' });
 
     const save = el('button', { class: 'primary', text: S.editor.save, attrs: { type: 'button' } });
@@ -128,7 +131,11 @@ export class PersonEditor extends HTMLElement {
 
     // Enter saves from any single-line field; Escape closes via the dialog.
     dialog.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && event.target.tagName === 'INPUT' && event.target.type !== 'search') {
+      if (
+        event.key === 'Enter' &&
+        event.target.tagName === 'INPUT' &&
+        event.target.type !== 'search'
+      ) {
         event.preventDefault();
         this.#save();
       }
@@ -159,6 +166,7 @@ export class PersonEditor extends HTMLElement {
           this.#eventFieldset(S.editor.birth, 'birth'),
           this.#eventFieldset(S.editor.death, 'death'),
           this.#photoFieldset(),
+          this.#documentFieldset(),
           labelled(S.editor.notes, this.#fields.notes),
           this.#reviewFieldset(),
         ],
@@ -259,7 +267,11 @@ export class PersonEditor extends HTMLElement {
 
         const promote = el('button', {
           text: '★',
-          attrs: { type: 'button', title: S.editor.makePortrait, 'aria-label': S.editor.makePortrait },
+          attrs: {
+            type: 'button',
+            title: S.editor.makePortrait,
+            'aria-label': S.editor.makePortrait,
+          },
         });
         promote.disabled = isPortrait;
         promote.addEventListener('click', () =>
@@ -268,7 +280,11 @@ export class PersonEditor extends HTMLElement {
 
         const drop = el('button', {
           text: '×',
-          attrs: { type: 'button', title: S.editor.removePhoto, 'aria-label': S.editor.removePhoto },
+          attrs: {
+            type: 'button',
+            title: S.editor.removePhoto,
+            'aria-label': S.editor.removePhoto,
+          },
         });
         drop.addEventListener('click', () =>
           emit(this, 'photo:remove', { mediaId: item.id, personId: person.id }),
@@ -291,6 +307,89 @@ export class PersonEditor extends HTMLElement {
   refreshPhotos(photos) {
     this.#photos = photos;
     this.#renderGallery();
+  }
+
+  #documentFieldset() {
+    const add = el('button', { text: S.editor.addDocuments, attrs: { type: 'button' } });
+    add.addEventListener('click', () => emit(this, 'documents:add', { personId: this.#person.id }));
+
+    const fieldset = document.createElement('fieldset');
+    fieldset.append(
+      el('legend', { text: S.editor.documents }),
+      this.#fields.documentsList,
+      el('div', { children: [add] }),
+      el('p', { class: 'note', text: S.editor.documentsHint }),
+    );
+
+    return fieldset;
+  }
+
+  /** Rebuilt whenever the person's documents change. */
+  #renderDocuments() {
+    const person = this.#person;
+
+    if (this.#documents.length === 0) {
+      setChildren(this.#fields.documentsList, [
+        el('p', { class: 'note', text: S.editor.noDocuments }),
+      ]);
+      return;
+    }
+
+    setChildren(
+      this.#fields.documentsList,
+      this.#documents.map((item) => {
+        const ext = (item.path.split('.').pop() ?? 'DOC').toUpperCase();
+        const name = item.caption || item.path.split('/').pop();
+        const size = formatBytes(item.bytes);
+
+        const download = el('button', {
+          text: '↓',
+          attrs: {
+            type: 'button',
+            class: 'doc-action',
+            title: S.editor.downloadDocument,
+            'aria-label': S.editor.downloadDocument,
+          },
+        });
+        download.addEventListener('click', () =>
+          emit(this, 'document:download', { mediaId: item.id }),
+        );
+
+        const drop = el('button', {
+          text: '×',
+          attrs: {
+            type: 'button',
+            class: 'doc-action',
+            title: S.editor.removeDocument,
+            'aria-label': S.editor.removeDocument,
+          },
+        });
+        drop.addEventListener('click', () =>
+          emit(this, 'document:remove', { mediaId: item.id, personId: person.id }),
+        );
+
+        return el('div', {
+          class: 'doc-item',
+          children: [
+            el('span', { class: 'doc-badge', text: ext }),
+            el('div', {
+              class: 'doc-details',
+              children: [
+                el('span', { class: 'doc-name', text: name, attrs: { title: name } }),
+                size ? el('span', { class: 'doc-size', text: size }) : null,
+              ],
+            }),
+            el('div', { class: 'doc-actions', children: [download, drop] }),
+          ],
+        });
+      }),
+    );
+  }
+
+  /** Called by the parent after the document list changed, without reopening. */
+  refreshDocuments(documents) {
+    this.#documents = documents;
+    this.#renderDocuments();
   }
 
   #eventFieldset(legendText, prefix) {
@@ -374,6 +473,13 @@ function countrySelect() {
 
 function labelled(text, field) {
   return el('label', { children: [el('span', { text }), field] });
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes <= 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 customElements.define('person-editor', PersonEditor);

@@ -28,7 +28,9 @@ dialog[open] {
   display: flex;
   flex-direction: column;
 }
-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
 
 /* The fields scroll; the footer does not. */
 .body {
@@ -39,7 +41,10 @@ dialog::backdrop { background: rgb(0 0 0 / 35%); }
   flex: 1 1 auto;
   align-content: start;
 }
-h2 { margin: 0; font-size: var(--fs-lg); }
+h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
 
 /**
  * minmax(0, 1fr), not 1fr.
@@ -48,10 +53,22 @@ h2 { margin: 0; font-size: var(--fs-lg); }
  * reports a min-content width of roughly twenty characters. Two of those refuse
  * to fit a narrow window and the second column leaves the dialog altogether.
  */
-.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-3); }
-label { display: grid; gap: var(--s-1); font-size: var(--fs-sm); color: var(--c-text-muted); }
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s-3);
+}
+label {
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
 
-textarea { resize: vertical; min-height: 4rem; }
+textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
 
 fieldset {
   border: 1px solid var(--c-border-subtle);
@@ -63,14 +80,33 @@ fieldset {
   /* A fieldset's min-width defaults to min-content, and ignores the grid. */
   min-width: 0;
 }
-legend { font-size: var(--fs-sm); color: var(--c-text-muted); padding: 0 var(--s-1); }
+legend {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  padding: 0 var(--s-1);
+}
 
-.note { font-size: var(--fs-sm); color: var(--c-text-muted); }
+.note {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
 
-.issues { display: grid; gap: var(--s-3); }
-.issue { display: grid; gap: var(--s-1); }
-.issue .what { font-size: var(--fs-sm); }
-.issue .who { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.issues {
+  display: grid;
+  gap: var(--s-3);
+}
+.issue {
+  display: grid;
+  gap: var(--s-1);
+}
+.issue .what {
+  font-size: var(--fs-sm);
+}
+.issue .who {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
 
 /* Named people are buttons, not text: knowing who the shared ancestor is
    matters much less than being able to get to them. */
@@ -79,10 +115,19 @@ legend { font-size: var(--fs-sm); color: var(--c-text-muted); padding: 0 var(--s
   padding: 0 var(--s-2);
   border-radius: 999px;
 }
-.issue[data-severity='ERROR'] .what { color: var(--c-error); }
-.issue[data-severity='WARNING'] .what { color: var(--c-warning); }
+.issue[data-severity='ERROR'] .what {
+  color: var(--c-error);
+}
+.issue[data-severity='WARNING'] .what {
+  color: var(--c-warning);
+}
 
-.gallery { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: flex-start; }
+.gallery {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
 
 .shot {
   position: relative;
@@ -90,14 +135,84 @@ legend { font-size: var(--fs-sm); color: var(--c-text-muted); padding: 0 var(--s
   gap: var(--s-1);
   justify-items: center;
 }
-.shot person-photo { --photo-size: 4rem; }
+.shot person-photo {
+  --photo-size: 4rem;
+}
 
 /* The portrait is marked by a ring plus a word, never by the ring alone. */
-.shot[data-portrait] person-photo { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-.shot .tag { font-size: var(--fs-sm); color: var(--c-accent); }
+.shot[data-portrait] person-photo {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.shot .tag {
+  font-size: var(--fs-sm);
+  color: var(--c-accent);
+}
 
-.shot-actions { display: flex; gap: var(--s-1); }
-.shot-actions button { padding: 0 var(--s-2); font-size: var(--fs-sm); }
+.shot-actions {
+  display: flex;
+  gap: var(--s-1);
+}
+.shot-actions button {
+  padding: 0 var(--s-2);
+  font-size: var(--fs-sm);
+}
+
+.documents-list {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  border: 1px solid var(--c-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface-sunken);
+}
+
+.doc-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px var(--s-2);
+  background: rgb(0 0 0 / 6%);
+  color: var(--c-accent);
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.doc-details {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.doc-name {
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-size {
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+}
+
+.doc-actions {
+  display: flex;
+  gap: var(--s-1);
+  flex-shrink: 0;
+}
+
+.doc-actions .doc-action {
+  padding: 0 var(--s-2);
+  font-size: var(--fs-sm);
+}
 
 footer {
   display: flex;
@@ -108,7 +223,11 @@ footer {
   background: var(--c-surface-sunken);
   flex: 0 0 auto;
 }
-footer .danger { margin-right: auto; color: var(--c-error); border-color: var(--c-error); }
+footer .danger {
+  margin-right: auto;
+  color: var(--c-error);
+  border-color: var(--c-error);
+}
 
 /**
  * Phone width. Last in the file, after every rule it overrides.
@@ -119,8 +238,13 @@ footer .danger { margin-right: auto; color: var(--c-error); border-color: var(--
  * that saving must always be reachable.
  */
 @media (max-width: 640px) {
-  .body { padding: var(--s-4); gap: var(--s-3); }
-  .pair { grid-template-columns: minmax(0, 1fr); }
+  .body {
+    padding: var(--s-4);
+    gap: var(--s-3);
+  }
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
   footer {
     flex-wrap: wrap;
@@ -129,5 +253,7 @@ footer .danger { margin-right: auto; color: var(--c-error); border-color: var(--
 
   /* Delete stays at the far end from Save, wrapped or not. Putting the two
      next to each other on a touch screen is how a family gets deleted. */
-  footer .danger { margin-right: auto; }
+  footer .danger {
+    margin-right: auto;
+  }
 }

@@ -54,12 +54,32 @@ describe('EXIF capture date', () => {
     // TIFF: little endian, IFD0 at offset 8, one entry: DateTime (0x0132).
     // Layout: 8 header + 2 count + 12 entry + 4 next-IFD pointer = data at 26.
     const tiff = [
-      0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00,
-      0x01, 0x00,
-      0x32, 0x01, 0x02, 0x00,
-      ascii.length, 0x00, 0x00, 0x00,
-      0x1a, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00,
+      0x49,
+      0x49,
+      0x2a,
+      0x00,
+      0x08,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x32,
+      0x01,
+      0x02,
+      0x00,
+      ascii.length,
+      0x00,
+      0x00,
+      0x00,
+      0x1a,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
       ...ascii,
     ];
 
@@ -168,6 +188,21 @@ describe('portrait selection', () => {
   it('returns nothing for a person with no photos', () => {
     const subject = person('Subject');
     const graph = buildIndexes(project({ persons: [subject] }));
+    expect(portraitOf(graph, subject.id)).to.equal(null);
+  });
+
+  it('never treats a document as a portrait', () => {
+    const subject = person('Subject');
+    const doc = createMediaObject({
+      id: 'doc-1',
+      kind: 'DOCUMENT',
+      path: 'documents/dd/doc-1.pdf',
+      hash: 'doc-1',
+      mime: 'application/pdf',
+      bytes: 100,
+      links: [mediaLink(subject.id, MediaRole.ATTACHMENT)],
+    });
+    const graph = buildIndexes(project({ persons: [subject], media: [doc] }));
     expect(portraitOf(graph, subject.id)).to.equal(null);
   });
 });

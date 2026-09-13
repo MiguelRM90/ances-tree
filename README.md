@@ -45,8 +45,8 @@ Zipping that folder produces a file another relative can open and carry on with.
 
 - **Privacy by construction.** There is no server to send anything to. The code
   is public and auditable.
-- **No practical limit on photographs** on the desktop: binaries go to your
-  disk rather than to a browser storage quota.
+- **No practical limit on photographs or documents** on the desktop: binaries
+  go to your disk rather than to a browser storage quota.
 - **Runs on a phone too**, keeping the archive in browser storage where there is
   no folder to pick — and saying so plainly, because that storage is weaker.
 - **Dates as they really are**: *about 1885*, *May 1912*, *before 1900*,

@@ -109,7 +109,8 @@ export const es = {
     exporting: 'Escribiendo el archivo…',
     exported: (n) => `Archivo escrito · ${n} ficheros`,
     importTitle: 'Importar archivo',
-    summary: (c) => `${c.persons} personas · ${c.unions} uniones · ${c.media} medios · ${c.files} ficheros`,
+    summary: (c) =>
+      `${c.persons} personas · ${c.unions} uniones · ${c.media} medios · ${c.files} ficheros`,
     unnamedArchive: 'Archivo sin título',
     chooseStrategy: '¿Cómo hay que incorporar este archivo?',
     mergeHere: 'Fusionar con esta familia',
@@ -120,9 +121,11 @@ export const es = {
     merged: (added) =>
       `Importado · ${added.persons} personas, ${added.unions} uniones y ${added.media} medios añadidos`,
     imported: 'Archivo importado',
-    damaged: (n) => `${n} ${n === 1 ? 'fichero estaba dañado' : 'ficheros estaban dañados'} y pueden estar incompletos`,
+    damaged: (n) =>
+      `${n} ${n === 1 ? 'fichero estaba dañado' : 'ficheros estaban dañados'} y pueden estar incompletos`,
     gedcomWritten: (n) => `GEDCOM escrito · ${n} personas`,
-    gedcomLossy: 'GEDCOM no puede con todo lo que registra esta aplicación. El ZIP es la copia fiel.',
+    gedcomLossy:
+      'GEDCOM no puede con todo lo que registra esta aplicación. El ZIP es la copia fiel.',
     gedcomRead: (c) => `Importadas ${c.persons} personas y ${c.unions} uniones`,
     gedcomWarnings: (n) => `${n} ${n === 1 ? 'línea no se entendió' : 'líneas no se entendieron'}`,
     gedcomEncoding: (enc) =>
@@ -147,8 +150,7 @@ export const es = {
     cancel: 'Cancelar',
     remove: 'Eliminar persona',
     confirmRemove: '¿Eliminar a esta persona y todos sus vínculos?',
-    materialise:
-      'Esto es un hueco por una persona desconocida. Al ponerle nombre pasa a ser real.',
+    materialise: 'Esto es un hueco por una persona desconocida. Al ponerle nombre pasa a ser real.',
     year: 'Año',
     rangeSeparator: 'y',
     review: 'Revisión',
@@ -165,6 +167,15 @@ export const es = {
     photosAdded: (n) => `${n} ${n === 1 ? 'foto añadida' : 'fotos añadidas'}`,
     photosReused: (n) => `${n} ya estaban en este archivo`,
     photosFailed: (n) => `${n} no se pudieron leer`,
+    documents: 'Documentos',
+    addDocuments: 'Añadir documentos',
+    noDocuments: 'Todavía no hay documentos.',
+    removeDocument: 'Quitar el documento',
+    downloadDocument: 'Descargar o abrir documento',
+    documentsAdded: (n) => `${n} ${n === 1 ? 'documento añadido' : 'documentos añadidos'}`,
+    documentsReused: (n) => `${n} ya estaban en este archivo`,
+    documentsFailed: (n) => `${n} no se pudieron leer`,
+    documentsHint: 'PDF, Word, Excel, texto y otros documentos adjuntos.',
     dateHint: '12 MAY 1912 · ABT 1885 · BET 1900 AND 1905',
     dateUnrecognised: 'Se conserva tal cual, pero no se entiende como fecha.',
   },

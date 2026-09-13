@@ -213,6 +213,14 @@ Se escriben una sola vez, al importarlos, y no se modifican nunca: son inmutable
 
 El porqué del paso 4 está en [decisions.md](decisions.md#fotografías-metadatos-exif): las fotos familiares llevan geolocalización.
 
+### Pipeline de importación de un documento
+
+1. Comprobar tamaño contra `MAX_DOCUMENT_BYTES` (100 MB) **antes de leer nada**
+2. Validar tipo real comprobando firmas binarias (%PDF, contenedores zip de Office/OpenDocument, OLE2, RTF, texto plano sin bytes nulos) y extensión permitida
+3. Calcular SHA-256 del archivo con `crypto.subtle.digest`
+4. Si el hash ya existe, no se escribe nada: se reutiliza el `MediaObject`
+5. Escribir en `documents/<xx>/<hash>.<ext>` y crear el `MediaObject` (`kind: 'DOCUMENT'`), guardando el nombre original en `caption`
+
 ---
 
 ## ZIP

@@ -24,12 +24,28 @@ import { MAX_PHOTO_BYTES } from '../config/limits.js';
 const SIGNATURES = [
   { mime: 'image/jpeg', ext: 'jpg', bytes: [0xff, 0xd8, 0xff] },
   { mime: 'image/png', ext: 'png', bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
-  { mime: 'image/webp', ext: 'webp', bytes: [0x52, 0x49, 0x46, 0x46], at: 0, also: { at: 8, bytes: [0x57, 0x45, 0x42, 0x50] } },
+  {
+    mime: 'image/webp',
+    ext: 'webp',
+    bytes: [0x52, 0x49, 0x46, 0x46],
+    at: 0,
+    also: { at: 8, bytes: [0x57, 0x45, 0x42, 0x50] },
+  },
 ];
 
 const GEDCOM_MONTHS = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
 ];
 
 const IMAGE_TYPES = [
@@ -160,7 +176,7 @@ export async function readMediaFile(dirHandle, path) {
   return (await current.getFileHandle(name)).getFile();
 }
 
-async function writeInto(dirHandle, path, blob) {
+export async function writeInto(dirHandle, path, blob) {
   const segments = path.split('/');
   const name = segments.pop();
 
@@ -258,7 +274,10 @@ const findTagOffset = (view, base, ifd, tag, little) =>
     ifd,
     (found, entry) =>
       found === tag
-        ? { offset: base + view.getUint32(entry + 8, little), length: view.getUint32(entry + 4, little) }
+        ? {
+            offset: base + view.getUint32(entry + 8, little),
+            length: view.getUint32(entry + 4, little),
+          }
         : undefined,
     little,
   );

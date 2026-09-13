@@ -40,7 +40,8 @@ export const en = {
       `Delete “${title}” for good?\n\nIt exists in this browser only. Unless you have exported a ZIP, ` +
       'there is no other copy, and this cannot be undone.',
     missingArchive: 'That archive is no longer there.',
-    browserHint: 'Your archive is kept by the browser on this device. Export a ZIP to keep a copy of your own.',
+    browserHint:
+      'Your archive is kept by the browser on this device. Export a ZIP to keep a copy of your own.',
   },
 
   /** Said plainly and more than once, because this storage really is weaker. */
@@ -50,8 +51,10 @@ export const en = {
     body:
       'This device has no folder picker, so AncesTree keeps the archive in storage the browser owns. ' +
       'Clearing site data deletes it, and some browsers discard it after a few weeks without a visit.',
-    advice: 'Export a ZIP every so often and put it somewhere you chose. That copy is the one that is yours.',
-    installHint: 'Adding AncesTree to your home screen makes the browser far less likely to discard it.',
+    advice:
+      'Export a ZIP every so often and put it somewhere you chose. That copy is the one that is yours.',
+    installHint:
+      'Adding AncesTree to your home screen makes the browser far less likely to discard it.',
     persisted: 'The browser has agreed to hold on to this storage.',
     notPersisted: 'The browser has not promised to hold on to this storage.',
     usage: (used) => `Currently using ${used}.`,
@@ -117,8 +120,7 @@ export const en = {
     gedcomEncoding: (enc) =>
       `Declared encoding ${enc}: accented characters may have been approximated.`,
     gedcomPhotos: 'A GEDCOM carries no photographs — only the references to them.',
-    gedcomLossy:
-      'GEDCOM cannot hold everything this app records. The ZIP is the faithful copy.',
+    gedcomLossy: 'GEDCOM cannot hold everything this app records. The ZIP is the faithful copy.',
     // A damaged file is reported rather than aborting the whole import.
     damaged: (n) => `${n} ${n === 1 ? 'file was' : 'files were'} damaged and may be incomplete`,
   },
@@ -157,6 +159,15 @@ export const en = {
     photosAdded: (n) => `${n} ${n === 1 ? 'photo' : 'photos'} added`,
     photosReused: (n) => `${n} already in this archive`,
     photosFailed: (n) => `${n} could not be read`,
+    documents: 'Documents',
+    addDocuments: 'Add documents',
+    noDocuments: 'No documents yet.',
+    removeDocument: 'Remove document',
+    downloadDocument: 'Download or open document',
+    documentsAdded: (n) => `${n} ${n === 1 ? 'document added' : 'documents added'}`,
+    documentsReused: (n) => `${n} already in this archive`,
+    documentsFailed: (n) => `${n} could not be read`,
+    documentsHint: 'PDF, Word, Excel, text and other attached documents.',
     // Only shown for the free-text mode: everything else has its own control.
     dateHint: '12 MAY 1912 · ABT 1885 · BET 1900 AND 1905',
     dateUnrecognised: 'Kept as written, but not understood as a date.',

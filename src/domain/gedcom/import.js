@@ -166,9 +166,8 @@ function readName(node) {
   const surnames = (match ? match[2] : '').trim();
 
   const second = childValue(node, '_SURN2').trim();
-  const first = second && surnames.endsWith(second)
-    ? surnames.slice(0, -second.length).trim()
-    : surnames;
+  const first =
+    second && surnames.endsWith(second) ? surnames.slice(0, -second.length).trim() : surnames;
 
   return {
     firstName: childValue(node, 'GIVN').trim() || given,
@@ -195,7 +194,9 @@ function readEvent(node) {
 }
 
 const readCertainty = (value) =>
-  Object.values(Certainty).includes(value.toUpperCase()) ? value.toUpperCase() : Certainty.CONFIRMED;
+  Object.values(Certainty).includes(value.toUpperCase())
+    ? value.toUpperCase()
+    : Certainty.CONFIRMED;
 
 // --- Families --------------------------------------------------------------
 
@@ -244,17 +245,54 @@ function readFamily(record, { project, personByXref, unionByXref, warnings }) {
 
 // --- Media -----------------------------------------------------------------
 
+const DOC_EXTS = new Set([
+  'pdf',
+  'docx',
+  'doc',
+  'xlsx',
+  'xls',
+  'odt',
+  'ods',
+  'pptx',
+  'ppt',
+  'txt',
+  'csv',
+  'rtf',
+]);
+
+const DOC_MIMES = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc: 'application/msword',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xls: 'application/ms-excel',
+  odt: 'application/vnd.oasis.opendocument.text',
+  ods: 'application/vnd.oasis.opendocument.spreadsheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  ppt: 'application/ms-powerpoint',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  rtf: 'application/rtf',
+};
+
 function readObject(record) {
   const file = child(record, 'FILE');
   if (!file?.value) return null;
 
   const form = childValue(file, 'FORM').toLowerCase() || childValue(record, 'FORM').toLowerCase();
+  const path = file.value.replace(/\\/g, '/');
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  const isDoc = DOC_EXTS.has(form) || DOC_EXTS.has(ext) || path.startsWith('documents/');
+
+  const mime = isDoc
+    ? DOC_MIMES[form] || DOC_MIMES[ext] || 'application/octet-stream'
+    : `image/${form || 'jpeg'}`;
 
   return createMediaObject({
-    kind: form === 'pdf' ? MediaKind.DOCUMENT : MediaKind.PHOTO,
-    path: file.value.replace(/\\/g, '/'),
+    kind: isDoc ? MediaKind.DOCUMENT : MediaKind.PHOTO,
+    path,
     hash: childValue(record, '_HASH'),
-    mime: form === 'pdf' ? 'application/pdf' : `image/${form || 'jpeg'}`,
+    mime,
     bytes: 0,
     caption: childValue(file, 'TITL') || childValue(record, 'TITL'),
   });
@@ -271,7 +309,10 @@ function attachMedia(records, personByXref, mediaByXref) {
 
       const role = childValue(reference, '_ROLE');
       item.links.push(
-        mediaLink(person.id, role === MediaRole.PORTRAIT ? MediaRole.PORTRAIT : MediaRole.ATTACHMENT),
+        mediaLink(
+          person.id,
+          role === MediaRole.PORTRAIT ? MediaRole.PORTRAIT : MediaRole.ATTACHMENT,
+        ),
       );
     }
   }

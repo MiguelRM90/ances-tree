@@ -204,7 +204,7 @@ En 5.5.1 se emite como registro de nivel 0 y se referencia desde `INDI` y `FAM`:
 | Campo del modelo | GEDCOM |
 |---|---|
 | `path` | `1 FILE` — **ruta relativa**, la misma que en la carpeta y el ZIP |
-| `mime` | `2 FORM jpeg` (`jpeg`, `png`, `pdf`) |
+| `mime` | `2 FORM jpeg` (`jpeg`, `png`, `webp`, `pdf`, `docx`, `xlsx`, etc.) |
 | `caption` | `2 TITL` |
 | `takenDate` | `1 NOTE` (5.5.1 no tiene fecha de media) |
 | `links[]` | `1 OBJE @O1@` en cada `INDI`/`FAM` |

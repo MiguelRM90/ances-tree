@@ -3,7 +3,7 @@
  * None of this is stored: it is computed from the four collections.
  */
 
-import { ParentType, MediaRole } from '../model/factories.js';
+import { ParentType, MediaRole, MediaKind } from '../model/factories.js';
 
 const EMPTY = Object.freeze([]);
 
@@ -100,7 +100,11 @@ export function siblingsOf(g, personId) {
 }
 
 export function biologicalParentIds(g, personId) {
-  return new Set(parentLinksOf(g, personId).filter(isBiological).map((l) => l.parentId));
+  return new Set(
+    parentLinksOf(g, personId)
+      .filter(isBiological)
+      .map((l) => l.parentId),
+  );
 }
 
 /**
@@ -141,13 +145,23 @@ export function mediaOf(g, personId) {
   return [...items].sort((a, b) => roleRank(a, personId) - roleRank(b, personId));
 }
 
+/** Only photos linked to a person. */
+export function photosOf(g, personId) {
+  return mediaOf(g, personId).filter((item) => item.kind === MediaKind.PHOTO);
+}
+
+/** Only documents linked to a person. */
+export function documentsOf(g, personId) {
+  return mediaOf(g, personId).filter((item) => item.kind === MediaKind.DOCUMENT);
+}
+
 /**
  * The portrait. Falls back to the first photo linked to the person: someone
  * who attached one photo clearly meant it to be their picture, and making them
- * mark it explicitly would be pedantry.
+ * mark it explicitly would be pedantry. Documents are never used as portrait.
  */
 export function portraitOf(g, personId) {
-  const photos = mediaOf(g, personId);
+  const photos = photosOf(g, personId);
   return photos[0] ?? null;
 }
 

@@ -30,7 +30,8 @@ export const ZIP64_LOCATOR_SIZE = 20;
  * Formats that are already compressed. Deflating them burns CPU for nothing —
  * often for a slightly larger result — so they are stored verbatim.
  */
-const PRECOMPRESSED = /\.(jpe?g|png|gif|webp|avif|heic|pdf|zip|gz|mp[34]|mov|m4[av])$/i;
+const PRECOMPRESSED =
+  /\.(jpe?g|png|gif|webp|avif|heic|pdf|zip|gz|mp[34]|mov|m4[av]|docx|xlsx|pptx|odt|ods)$/i;
 
 export const shouldDeflate = (name) => !PRECOMPRESSED.test(name);
 

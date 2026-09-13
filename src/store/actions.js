@@ -40,7 +40,8 @@ import {
   createProjectFrom,
 } from '../storage/archive.js';
 import { pickImages, importPhoto } from '../storage/media.js';
-import { release } from '../storage/media-cache.js';
+import { pickDocuments, importDocument } from '../storage/documents.js';
+import { release, downloadMediaFile } from '../storage/media-cache.js';
 import {
   createPerson,
   createUnion,
@@ -49,7 +50,7 @@ import {
   MediaRole,
   ParentType,
 } from '../domain/model/factories.js';
-import { unionsOf, partnerIn, mediaOf } from '../domain/graph/queries.js';
+import { unionsOf, partnerIn, photosOf } from '../domain/graph/queries.js';
 
 export { recentProjects, storageMode, StorageMode, isBrowserStorage, storageEstimate };
 
@@ -560,7 +561,7 @@ export async function addPhotosFor(personId) {
   const attaching = [...fresh, ...reused];
   if (attaching.length === 0) return { ok: false, failed };
 
-  const hasPortrait = mediaOf(store.graph, personId).length > 0;
+  const hasPortrait = photosOf(store.graph, personId).length > 0;
 
   const result = store.apply(
     (project) => {
@@ -587,6 +588,58 @@ export async function addPhotosFor(personId) {
   return { ...result, added: fresh.length, reused: reused.length, failed };
 }
 
+/**
+ * Adds one or more documents to a person.
+ *
+ * @returns {Promise<{ok: boolean, added?: number, reused?: number, failed?: object[]}>}
+ */
+export async function addDocumentsFor(personId) {
+  if (!store.isOpen) return { ok: false, reason: 'none' };
+
+  const files = await pickDocuments();
+  if (files.length === 0) return { ok: false, cancelled: true };
+
+  const known = store.project.media;
+  const fresh = [];
+  const reused = [];
+  const failed = [];
+
+  for (const file of files) {
+    try {
+      const result = await importDocument(store.directoryHandle, file, [...known, ...fresh]);
+      (result.reused ? reused : fresh).push(result.media);
+    } catch (error) {
+      failed.push({ name: file.name, message: error.message });
+    }
+  }
+
+  const attaching = [...fresh, ...reused];
+  if (attaching.length === 0) return { ok: false, failed };
+
+  const result = store.apply(
+    (project) => {
+      const byId = new Map(project.media.map((item) => [item.id, item]));
+
+      for (const item of attaching) {
+        const existing = byId.get(item.id) ?? item;
+        const alreadyLinked = existing.links.some((link) => link.targetId === personId);
+
+        byId.set(item.id, {
+          ...existing,
+          links: alreadyLinked
+            ? existing.links
+            : [...existing.links, mediaLink(personId, MediaRole.ATTACHMENT)],
+        });
+      }
+
+      return { ...project, media: [...byId.values()] };
+    },
+    { label: 'add documents' },
+  );
+
+  return { ...result, added: fresh.length, reused: reused.length, failed };
+}
+
 /** Promotes one photo to be the person's portrait. */
 export function setPortrait(mediaId, personId) {
   return store.apply(
@@ -606,7 +659,7 @@ export function setPortrait(mediaId, personId) {
 }
 
 /**
- * Detaches a photo from a person.
+ * Detaches a photo or document from a person.
  *
  * The file on disk is left alone: it may still belong to someone else, and a
  * photo of a group is exactly the case where it does. Files nobody references
@@ -633,14 +686,22 @@ export function removePhotoFrom(mediaId, personId) {
   );
 }
 
+export const removeDocumentFrom = removePhotoFrom;
+
+/** Triggers download of an attached media document or photo. */
+export async function downloadDocument(mediaId) {
+  if (!store.isOpen) return false;
+  const item = store.graph?.media.get(mediaId);
+  if (!item) return false;
+  return downloadMediaFile(store.directoryHandle, item);
+}
+
 export function removeEntity(kind, id) {
   return store.apply(
     (p) => {
       if (kind === 'person') {
         const removedUnionIds = new Set(
-          p.unions
-            .filter((u) => u.partner1Id === id || u.partner2Id === id)
-            .map((u) => u.id),
+          p.unions.filter((u) => u.partner1Id === id || u.partner2Id === id).map((u) => u.id),
         );
 
         return {
@@ -649,9 +710,7 @@ export function removeEntity(kind, id) {
           unions: p.unions.filter((u) => !removedUnionIds.has(u.id)),
           parentChildren: p.parentChildren
             .filter((l) => l.parentId !== id && l.childId !== id)
-            .map((l) =>
-              removedUnionIds.has(l.unionId) ? { ...l, unionId: null } : l,
-            ),
+            .map((l) => (removedUnionIds.has(l.unionId) ? { ...l, unionId: null } : l)),
           settings:
             p.settings.focalPersonId === id
               ? { ...p.settings, focalPersonId: nextFocalAfter(p, id) }

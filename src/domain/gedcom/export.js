@@ -280,8 +280,32 @@ function writeObject(out, item, xref) {
   if (item.hash) out.line(1, '_HASH', item.hash);
 }
 
-const formatOf = (item) =>
-  item.kind === MediaKind.DOCUMENT ? 'pdf' : (item.mime?.split('/')[1] ?? 'jpeg');
+const formatOf = (item) => {
+  if (item.kind === MediaKind.DOCUMENT) {
+    const ext = item.path?.split('.').pop()?.toLowerCase();
+    if (
+      ext &&
+      [
+        'pdf',
+        'docx',
+        'doc',
+        'xlsx',
+        'xls',
+        'odt',
+        'ods',
+        'pptx',
+        'ppt',
+        'txt',
+        'csv',
+        'rtf',
+      ].includes(ext)
+    ) {
+      return ext;
+    }
+    return 'pdf';
+  }
+  return item.mime?.split('/')[1] ?? 'jpeg';
+};
 
 function writeEvent(out, tag, event) {
   if (!event || (!event.date?.raw && !event.place)) return;

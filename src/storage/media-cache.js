@@ -27,7 +27,7 @@ let currentDirHandle = null;
  * Resolves a project-relative path to an object URL.
  * @returns {Promise<string|null>} null when the file is missing from disk
  */
-export function photoUrl(dirHandle, path) {
+export function mediaUrl(dirHandle, path) {
   if (!dirHandle || !path) return Promise.resolve(null);
 
   if (dirHandle !== currentDirHandle) {
@@ -43,13 +43,37 @@ export function photoUrl(dirHandle, path) {
     return Promise.resolve(cached);
   }
 
-  // Several cards can ask for the same photo in one repaint; they share a read.
+  // Several callers can ask for the same file in one repaint; they share a read.
   const inFlight = pending.get(path);
   if (inFlight) return inFlight;
 
   const request = load(dirHandle, path).finally(() => pending.delete(path));
   pending.set(path, request);
   return request;
+}
+
+export const photoUrl = mediaUrl;
+export const documentUrl = mediaUrl;
+
+/**
+ * Triggers a download for an attached media item (photo or document) with its caption name.
+ */
+export async function downloadMediaFile(dirHandle, mediaItem) {
+  if (!dirHandle || !mediaItem?.path) return false;
+  const file = await readMediaFile(dirHandle, mediaItem.path);
+  const blob = mediaItem.mime ? new Blob([file], { type: mediaItem.mime }) : file;
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = mediaItem.caption || mediaItem.path.split('/').pop() || 'download';
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return true;
 }
 
 async function load(dirHandle, path) {
