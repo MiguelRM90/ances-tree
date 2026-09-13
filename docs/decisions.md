@@ -66,7 +66,7 @@ Servir la app por `file://` está descartado y conviene entender por qué, porqu
 - **IndexedDB es poco fiable**: el comportamiento varía por navegador, y en Firefox cada archivo tiene un origen distinto
 - **No hay service worker**: requiere HTTPS o localhost
 
-**Salida de emergencia documentada**: si algún día se necesita un único `.html` autocontenido para pasar a un familiar sin conexión, se genera un build especial con todo el CSS y JS inline como *script clásico* (sin `import`). Se renuncia a módulos, service worker e IndexedDB fiable. Es un modo degradado, no el camino principal.
+**Salida de emergencia documentada**: si algún día se necesita un único `.html` autocontenido para pasar a un familiar sin conexión, se genera un build especial con todo el CSS y JS inline como _script clásico_ (sin `import`). Se renuncia a módulos, service worker e IndexedDB fiable. Es un modo degradado, no el camino principal.
 
 ---
 
@@ -131,18 +131,18 @@ Motivos, por orden de importancia:
 
 ## Tooling (solo desarrollo)
 
-| Herramienta | Propósito |
-|---|---|
-| **Vite** | Dev server y build, HMR rápido. `base: '/ances-tree/'`, `build.target: 'esnext'` |
-| **ESLint** + `eslint-plugin-wc` | Linting, con reglas específicas para Web Components |
-| **Prettier** | Formateo consistente |
-| **Web Test Runner** | Tests en navegador real, pensado para Web Components |
+| Herramienta                     | Propósito                                                                        |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| **Vite**                        | Dev server y build, HMR rápido. `base: '/ances-tree/'`, `build.target: 'esnext'` |
+| **ESLint** + `eslint-plugin-wc` | Linting, con reglas específicas para Web Components                              |
+| **Prettier**                    | Formateo consistente                                                             |
+| **Web Test Runner**             | Tests en navegador real, pensado para Web Components                             |
 
 ### Dependencias de desarrollo
 
 - Aunque no hay dependencias de runtime, las de desarrollo también son un vector de ataque (supply chain)
 - Fijar versiones exactas en `package.json` (`"vite": "5.2.1"`, no `"^5"`)
-- Revisar dependencias periódicamente con `npm audit`
+- Revisar dependencias periódicamente con `pnpm audit`
 
 ---
 
@@ -274,7 +274,7 @@ const key = await crypto.subtle.deriveKey(
   passphraseKey,
   { name: 'AES-GCM', length: 256 },
   false, // ⬅ NO extractable: ni un XSS puede exfiltrarla, solo usarla mientras la pestaña vive
-  ['encrypt', 'decrypt']
+  ['encrypt', 'decrypt'],
 );
 ```
 

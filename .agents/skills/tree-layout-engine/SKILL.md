@@ -13,12 +13,14 @@ This skill guides modifications and debugging of the genealogy graph layout engi
 ## Core Architectural Rules
 
 1. **NO DOM Access in Layout**:
+
    - `src/domain/layout/engine.js` is a pure function.
    - It **never** uses `document`, `window`, or `getBoundingClientRect()`.
    - Layout produces an abstract layout tree: `{ nodes, rows, edges, width, height, levels }` in mathematical coordinate space.
    - Painting is exclusively handled by `src/ui/components/tree-canvas.js` and `src/ui/edge-paths.js`.
 
 2. **Phase Execution Pipeline**:
+
    - **Phase 0 & 1**: Level assignment and pruning around focal person (`src/domain/graph/generations.js`).
    - **Phase 2**: Synthetic union nodes insertion between spouses.
    - **Phase 3**: Node ordering per level to minimize edge crossings.
@@ -40,6 +42,6 @@ This skill guides modifications and debugging of the genealogy graph layout engi
   - Never introduce DOM measurements to resolve edge paths.
 
 ## Verification Checklist
-- Run `npm test test/edge-paths.test.js test/graph.test.js` to ensure zero regressions in routing.
-- Check `docs/architecture.md` (Motor de maquetación) for deep design background.
 
+- Run `pnpm test test/edge-paths.test.js test/graph.test.js` to ensure zero regressions in routing.
+- Check `docs/architecture.md` (Motor de maquetación) for deep design background.

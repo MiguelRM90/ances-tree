@@ -49,8 +49,8 @@ Zipping that folder produces a file another relative can open and carry on with.
   go to your disk rather than to a browser storage quota.
 - **Runs on a phone too**, keeping the archive in browser storage where there is
   no folder to pick — and saying so plainly, because that storage is weaker.
-- **Dates as they really are**: *about 1885*, *May 1912*, *before 1900*,
-  *between 1900 and 1905* — with validation that understands uncertainty
+- **Dates as they really are**: _about 1885_, _May 1912_, _before 1900_,
+  _between 1900 and 1905_ — with validation that understands uncertainty
   instead of demanding precision nobody has.
 - **Two surnames**, kept separate, as Spanish records write them. It is what
   makes a line traceable.
@@ -105,11 +105,11 @@ refuses to open.
 ## Running it
 
 ```bash
-npm install
-npm run dev      # http://localhost:5173/ances-tree/
-npm test         # 265 tests, in a real browser
-npm run lint
-npm run build    # dist/, ready for GitHub Pages
+pnpm install
+pnpm dev         # http://localhost:5173/ances-tree/
+pnpm test        # 278 tests, in a real browser
+pnpm run lint
+pnpm run build   # dist/, ready for GitHub Pages
 ```
 
 The `/ances-tree/` in the URL is not optional: the build is configured for a
@@ -118,8 +118,8 @@ project page of that name.
 ### Trying it at scale
 
 ```bash
-npm run stress:generate   # a synthetic 10,000-person archive
-npm run stress:bench      # timings against the performance budget
+pnpm run stress:generate   # a synthetic 10,000-person archive
+pnpm run stress:bench      # timings against the performance budget
 ```
 
 The generator builds a structurally realistic tree — ten generations, fuzzy

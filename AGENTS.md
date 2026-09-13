@@ -7,6 +7,7 @@
 ## 1. Vision and Core Philosophy
 
 **ances-tree** is a static web application designed to build and maintain a complete family genealogical archive directly inside the user's browser.
+
 - **No accounts, no backend, no subscriptions**.
 - **Data never leaves the user's device**.
 - **Public code (GitHub) ≠ Private data (user's local storage)**.
@@ -17,15 +18,18 @@
 ## 2. The Five Inviolable Rules
 
 1. **Zero Runtime Dependencies**:
+
    - Strictly forbidden to install production libraries or frameworks (no React/Vue, lodash, JSZip, date-fns, external GEDCOM parsers, etc.).
    - Use web platform standards exclusively: Web Components (`HTMLElement`), File System Access API, Origin Private File System (OPFS), IndexedDB, native `CompressionStream`, `crypto.randomUUID()`.
    - Development dependencies (`devDependencies` in `package.json`: Vite, ESLint, Web Test Runner, Prettier) must never leak into production code.
 
 2. **No `innerHTML` with User Data**:
+
    - In this project, **everything is user data**: first names, last names, dates, notes, imported GEDCOM values, photo filenames, etc.
    - Always use `textContent`, `createElement`, or safe DOM manipulation.
 
 3. **Strict Downward Layer Dependencies**:
+
    ```
    UI (Web Components, CSS)  ──>  touches the DOM
       │
@@ -38,16 +42,18 @@
       ▼
    STORAGE (DISK / OPFS persistence, ZIP, IDB) ──>  touches disk / IndexedDB
    ```
+
    - `domain/` **MUST NEVER** import anything from `ui/`, `store/`, or `storage/`. It does not touch the DOM or IndexedDB.
    - `storage/` does not know about `store`. It receives and returns plain data structures.
    - `ui/` never invokes `storage/` directly; it always triggers actions through `store/`.
 
 4. **Almost Everything is `WARNING`, Not `ERROR`**:
+
    - Real historical genealogy is full of gaps, contradictory dates, consanguineous marriages, and uncertain records.
    - Only structurally impossible graph operations are blocked (`BLOCKED`/`FATAL`): ancestry cycles, self-parenthood, dangling references, more than 2 biological parents. Everything else emits warnings (`WARNING`), but allows saving.
 
 5. **The Original `raw` Date String is Never Lost or Overwritten**:
-   - Genealogical dates can be "*about 1885*", "*before May 1912*", "*between 1900 and 1905*".
+   - Genealogical dates can be "_about 1885_", "_before May 1912_", "_between 1900 and 1905_".
    - `raw` is the immutable source of truth entered by the user. The `earliest` and `latest` fields are derived and dynamically recalculated.
 
 ---
@@ -59,6 +65,7 @@
 - **Design Specifications**: Maintained in Spanish inside the [`docs/`](docs/README.md) directory for technical reference.
 
 ### Code Style
+
 - Web Components extending `HTMLElement` with hyphenated names (`person-card`, `tree-canvas`).
 - Private class fields and methods use native JavaScript `#` (`#state`, `#render()`), never underscores (`_`).
 - Constructable stylesheets at module level (`import css from './component.css?inline'` with `adoptedStyleSheets`), **never inline `<style>` tags** to comply with strict Content Security Policy (CSP).
@@ -108,24 +115,24 @@ ances-tree/
 
 ```bash
 # Vite dev server at http://localhost:5173/ances-tree/
-npm run dev
+pnpm dev
 
 # Run tests in real browser (Web Test Runner)
 # On Linux set CHROME_PATH=/usr/bin/google-chrome if not discovered automatically:
-CHROME_PATH=/usr/bin/google-chrome npm test
+CHROME_PATH=/usr/bin/google-chrome pnpm test
 
 # Linter (ESLint + eslint-plugin-wc)
-npm run lint
+pnpm run lint
 
 # Code formatting (Prettier)
-npm run format
+pnpm run format
 
 # Production build (Vite -> dist/)
-npm run build
+pnpm run build
 
 # Large-scale stress testing
-npm run stress:generate
-npm run stress:bench
+pnpm run stress:generate
+pnpm run stress:bench
 ```
 
 ---
@@ -133,6 +140,7 @@ npm run stress:bench
 ## 7. Supplementary Documentation
 
 Before modifying specific subsystems, consult the relevant design document:
+
 - **Data model or dates**: [docs/data-model.md](docs/data-model.md)
 - **Persistence, ZIP export, or folder permissions**: [docs/storage.md](docs/storage.md)
 - **Tree layout or SVG edge routing**: [docs/architecture.md](docs/architecture.md)

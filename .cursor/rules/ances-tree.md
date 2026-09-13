@@ -1,6 +1,6 @@
 ---
 description: Comprehensive rules and conventions for ances-tree
-globs: "**/*"
+globs: '**/*'
 ---
 
 # ances-tree Project Guidelines
@@ -17,8 +17,7 @@ globs: "**/*"
   - Two distinct surname fields: `lastName` and `secondLastName`.
 - **Language**: English for code, identifiers, tests, and commits.
 - **Commands**:
-  - Dev: `npm run dev`
-  - Build: `npm run build`
-  - Test: `CHROME_PATH=/usr/bin/google-chrome npm test`
-  - Lint: `npm run lint`
-
+  - Dev: `pnpm dev`
+  - Build: `pnpm build`
+  - Test: `CHROME_PATH=/usr/bin/google-chrome pnpm test`
+  - Lint: `pnpm run lint`
