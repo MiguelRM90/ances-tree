@@ -1,4 +1,6 @@
-:host { display: block; }
+:host {
+  display: block;
+}
 
 button {
   position: relative;
@@ -17,11 +19,17 @@ button {
   row-gap: var(--s-1);
 }
 
-person-photo { grid-row: 1 / span 2; --photo-size: 2.5rem; }
+person-photo {
+  grid-row: 1 / span 2;
+  --photo-size: 2.5rem;
+}
 
 /* minmax(0, 1fr) above is what lets the text column actually shrink, which
    is what makes the ellipsis work inside a grid. */
-.line, .dates { grid-column: 2; }
+.line,
+.dates {
+  grid-column: 2;
+}
 
 /* Name and flag on one line, with the flag never squeezing the name out. */
 .line {
@@ -71,7 +79,9 @@ person-photo { grid-row: 1 / span 2; --photo-size: 2.5rem; }
   border-width: 2px;
   padding: calc(var(--s-3) - 1px);
   background: var(--c-accent-soft);
-  box-shadow: 0 0 0 3px var(--c-accent-soft), var(--shadow);
+  box-shadow:
+    0 0 0 3px var(--c-accent-soft),
+    var(--shadow);
 }
 
 :host([focal]) .dates {
@@ -81,7 +91,9 @@ person-photo { grid-row: 1 / span 2; --photo-size: 2.5rem; }
 /* The parents of whoever is being pointed at. */
 :host([related]) button {
   border-color: var(--c-accent);
-  box-shadow: 0 0 0 2px var(--c-accent-soft), var(--shadow);
+  box-shadow:
+    0 0 0 2px var(--c-accent-soft),
+    var(--shadow);
 }
 
 @media (forced-colors: active) {
@@ -117,18 +129,27 @@ person-photo { grid-row: 1 / span 2; --photo-size: 2.5rem; }
   min-height: 1.2em;
 }
 
-/* A person with a written note. Out of the flow, opposite the issue badge, so
-   the two never fight for the same corner. */
-.note {
+/* Marks on a person (written notes, attached documents). Out of the flow,
+   opposite the issue badge, so they never fight for the same corner. */
+.marks {
   position: absolute;
   bottom: var(--s-2);
   right: var(--s-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.marks svg,
+.note {
   width: 0.875rem;
   height: 0.875rem;
   color: var(--c-text-muted);
   pointer-events: auto;
+  flex: 0 0 auto;
 }
 
+:host([focal]) .marks svg,
 :host([focal]) .note {
   color: var(--c-accent);
 }

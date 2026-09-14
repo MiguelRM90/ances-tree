@@ -11,10 +11,26 @@
 
 import { Crc32, crc32OfBlob } from './crc32.js';
 import {
-  LOCAL_SIG, CD_SIG, EOCD_SIG, ZIP64_EOCD_SIG, ZIP64_LOCATOR_SIG, ZIP64_EXTRA_ID,
-  METHOD_STORE, METHOD_DEFLATE, MAX16, MAX32,
-  LOCAL_HEADER_SIZE, CD_HEADER_SIZE, EOCD_SIZE, ZIP64_EOCD_SIZE, ZIP64_LOCATOR_SIZE,
-  dosTime, dosDate, encodeName, deflateRaw, shouldDeflate,
+  LOCAL_SIG,
+  CD_SIG,
+  EOCD_SIG,
+  ZIP64_EOCD_SIG,
+  ZIP64_LOCATOR_SIG,
+  ZIP64_EXTRA_ID,
+  METHOD_STORE,
+  METHOD_DEFLATE,
+  MAX16,
+  MAX32,
+  LOCAL_HEADER_SIZE,
+  CD_HEADER_SIZE,
+  EOCD_SIZE,
+  ZIP64_EOCD_SIZE,
+  ZIP64_LOCATOR_SIZE,
+  dosTime,
+  dosDate,
+  encodeName,
+  deflateRaw,
+  shouldDeflate,
 } from './format.js';
 
 export class ZipWriter {
@@ -76,8 +92,7 @@ export class ZipWriter {
     }
 
     const cdSize = this.#offset - cdOffset;
-    const needsZip64 =
-      this.#entries.length > MAX16 || cdOffset > MAX32 || cdSize > MAX32;
+    const needsZip64 = this.#entries.length > MAX16 || cdOffset > MAX32 || cdSize > MAX32;
 
     if (needsZip64) {
       const zip64Offset = this.#offset;

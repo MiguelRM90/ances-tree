@@ -17,7 +17,9 @@ dialog[open] {
   display: flex;
   flex-direction: column;
 }
-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
 
 .body {
   display: grid;
@@ -28,7 +30,10 @@ dialog::backdrop { background: rgb(0 0 0 / 35%); }
   align-content: start;
 }
 
-h2 { margin: 0; font-size: var(--fs-lg); }
+h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
 
 fieldset {
   border: 1px solid var(--c-border-subtle);
@@ -41,14 +46,31 @@ fieldset {
   min-width: 0;
 }
 
-legend { font-size: var(--fs-sm); color: var(--c-text-muted); padding: 0 var(--s-1); }
-.note { margin: 0; font-size: var(--fs-sm); color: var(--c-text-muted); }
+legend {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  padding: 0 var(--s-1);
+}
+.note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
 
-select:disabled { color: var(--c-text-muted); background: var(--c-surface-sunken); }
+select:disabled {
+  color: var(--c-text-muted);
+  background: var(--c-surface-sunken);
+}
 
 /* --- Rows ---------------------------------------------------------------- */
 
-.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
 
 .rows li {
   display: grid;
@@ -73,17 +95,37 @@ select:disabled { color: var(--c-text-muted); background: var(--c-surface-sunken
   padding: var(--s-3);
 }
 
-.rows li.replacing { grid-template-columns: minmax(0, 1fr) auto; }
-.rows li.replacing person-search { min-width: 0; }
+.rows li.replacing {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.rows li.replacing person-search {
+  min-width: 0;
+}
 
-.who { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-actions { display: flex; gap: var(--s-1); }
+.who {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-actions {
+  display: flex;
+  gap: var(--s-1);
+}
 
 /* The two dates run the full width under the partner they belong to. */
-.union { grid-template-areas: 'who kind actions' 'dates dates dates'; }
-.union .who { grid-area: who; }
-.union select { grid-area: kind; }
-.union .row-actions { grid-area: actions; }
+.union {
+  grid-template-areas: 'who kind actions' 'dates dates dates';
+}
+.union .who {
+  grid-area: who;
+}
+.union select {
+  grid-area: kind;
+}
+.union .row-actions {
+  grid-area: actions;
+}
 
 .dates {
   grid-area: dates;
@@ -92,10 +134,20 @@ select:disabled { color: var(--c-text-muted); background: var(--c-surface-sunken
   gap: var(--s-3);
 }
 
-.dates label { display: grid; gap: var(--s-1); font-size: var(--fs-sm); color: var(--c-text-muted); }
+.dates label {
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
 
-.danger { color: var(--c-error); }
-.danger:hover { border-color: var(--c-error); background: var(--c-error-soft); }
+.danger {
+  color: var(--c-error);
+}
+.danger:hover {
+  border-color: var(--c-error);
+  background: var(--c-error-soft);
+}
 
 footer {
   display: flex;
@@ -114,12 +166,25 @@ footer {
  * name on its own line, then the controls under it.
  */
 @media (max-width: 640px) {
-  .body { padding: var(--s-4); gap: var(--s-3); }
-  footer { padding: var(--s-3) var(--s-4); }
+  .body {
+    padding: var(--s-4);
+    gap: var(--s-3);
+  }
+  footer {
+    padding: var(--s-3) var(--s-4);
+  }
 
-  .rows li { grid-template-columns: minmax(0, 1fr) auto; }
-  .rows li .who { grid-column: 1 / -1; }
+  .rows li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rows li .who {
+    grid-column: 1 / -1;
+  }
 
-  .union { grid-template-areas: 'who who' 'kind actions' 'dates dates'; }
-  .dates { grid-template-columns: minmax(0, 1fr); }
+  .union {
+    grid-template-areas: 'who who' 'kind actions' 'dates dates';
+  }
+  .dates {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

@@ -55,7 +55,6 @@ export class ImportDialog extends HTMLElement {
       if (event.target === dialog) this.close();
     });
 
-
     this.#card = el('div', { class: 'card' });
 
     const merge = choiceButton(S.archive.mergeHere, S.archive.mergeHint);
@@ -96,7 +95,10 @@ function choiceButton(label, hint) {
   return el('button', {
     class: 'choice',
     attrs: { type: 'button' },
-    children: [el('span', { class: 'label', text: label }), el('span', { class: 'hint', text: hint })],
+    children: [
+      el('span', { class: 'label', text: label }),
+      el('span', { class: 'hint', text: hint }),
+    ],
   });
 }
 

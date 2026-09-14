@@ -27,7 +27,8 @@ export const Comparison = {
 export function isBefore(a, b) {
   if (!a || !b) return Comparison.POSSIBLE;
   if (a.latest !== null && b.earliest !== null && a.latest < b.earliest) return Comparison.CERTAIN;
-  if (a.earliest !== null && b.latest !== null && a.earliest > b.latest) return Comparison.IMPOSSIBLE;
+  if (a.earliest !== null && b.latest !== null && a.earliest > b.latest)
+    return Comparison.IMPOSSIBLE;
   return Comparison.POSSIBLE;
 }
 

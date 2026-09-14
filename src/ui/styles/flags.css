@@ -101,7 +101,11 @@
 }
 .codechip[data-country='CR']::before {
   background: linear-gradient(
-    #002b7f 0 20%, #fff 20% 33%, #ce1126 33% 67%, #fff 67% 80%, #002b7f 80%
+    #002b7f 0 20%,
+    #fff 20% 33%,
+    #ce1126 33% 67%,
+    #fff 67% 80%,
+    #002b7f 80%
   );
 }
 
@@ -162,8 +166,7 @@
 /* The star inside the triangle is beyond a swatch this size; the five stripes
    and the hoist wedge are what identify it anyway. */
 .codechip[data-country='CU']::before {
-  background:
-    conic-gradient(from 45deg at 0 50%, #cf142b 0 90deg, transparent 90deg),
+  background: conic-gradient(from 45deg at 0 50%, #cf142b 0 90deg, transparent 90deg),
     repeating-linear-gradient(#002a8f 0 20%, #fff 20% 40%);
 }
 
@@ -202,13 +205,11 @@
  * them, one per direction, leave a diamond standing in the middle.
  */
 .codechip[data-country='BR']::before {
-  background:
-    radial-gradient(circle at 50% 50%, #002776 0 26%, transparent 26%),
+  background: radial-gradient(circle at 50% 50%, #002776 0 26%, transparent 26%),
     linear-gradient(to bottom right, #009c3b 0 24%, transparent 24%),
     linear-gradient(to bottom left, #009c3b 0 24%, transparent 24%),
     linear-gradient(to top right, #009c3b 0 24%, transparent 24%),
-    linear-gradient(to top left, #009c3b 0 24%, transparent 24%),
-    #ffdf00;
+    linear-gradient(to top left, #009c3b 0 24%, transparent 24%), #ffdf00;
 }
 
 /**
@@ -267,26 +268,29 @@
     linear-gradient(#fff 0 0) no-repeat 50% 0 / 20% 100%,
     conic-gradient(
       from 0deg at 50% 50%,
-      #ce1126 0 90deg, #002d62 90deg 180deg, #ce1126 180deg 270deg, #002d62 270deg
+      #ce1126 0 90deg,
+      #002d62 90deg 180deg,
+      #ce1126 180deg 270deg,
+      #002d62 270deg
     );
 }
 .codechip[data-country='PA']::before {
   background: conic-gradient(
     from 0deg at 50% 50%,
-    #d21034 0 90deg, #fff 90deg 180deg, #005293 180deg 270deg, #fff 270deg
+    #d21034 0 90deg,
+    #fff 90deg 180deg,
+    #005293 180deg 270deg,
+    #fff 270deg
   );
 }
 
 /* Crescents, drawn as one disc biting into another. */
 .codechip[data-country='TR']::before {
-  background:
-    radial-gradient(circle at 44% 50%, #e30a17 0 19%, transparent 19%),
-    radial-gradient(circle at 37% 50%, #fff 0 25%, transparent 25%),
-    #e30a17;
+  background: radial-gradient(circle at 44% 50%, #e30a17 0 19%, transparent 19%),
+    radial-gradient(circle at 37% 50%, #fff 0 25%, transparent 25%), #e30a17;
 }
 .codechip[data-country='DZ']::before {
-  background:
-    radial-gradient(circle at 55% 50%, #fff 0 19%, transparent 19%),
+  background: radial-gradient(circle at 55% 50%, #fff 0 19%, transparent 19%),
     radial-gradient(circle at 48% 50%, #d21034 0 25%, transparent 25%),
     linear-gradient(to right, #006233 0 50%, #fff 50%);
 }
@@ -299,21 +303,22 @@
   background: radial-gradient(circle at 50% 50%, #ffff00 0 20%, transparent 20%), #da251d;
 }
 .codechip[data-country='IN']::before {
-  background:
-    radial-gradient(circle at 50% 50%, #000080 0 9%, transparent 9%),
+  background: radial-gradient(circle at 50% 50%, #000080 0 9%, transparent 9%),
     linear-gradient(#ff9933 0 33.3%, #fff 33.3% 66.6%, #138808 66.6%);
 }
 .codechip[data-country='IL']::before {
-  background: linear-gradient(
-    #fff 0 16%, #0038b8 16% 28%, #fff 28% 72%, #0038b8 72% 84%, #fff 84%
-  );
+  background: linear-gradient(#fff 0 16%, #0038b8 16% 28%, #fff 28% 72%, #0038b8 72% 84%, #fff 84%);
 }
 .codechip[data-country='EG']::before {
   background: linear-gradient(#ce1126 0 33.3%, #fff 33.3% 66.6%, #000 66.6%);
 }
 .codechip[data-country='TH']::before {
   background: linear-gradient(
-    #a51931 0 17%, #fff 17% 33%, #2d2a4a 33% 67%, #fff 67% 83%, #a51931 83%
+    #a51931 0 17%,
+    #fff 17% 33%,
+    #2d2a4a 33% 67%,
+    #fff 67% 83%,
+    #a51931 83%
   );
 }
 

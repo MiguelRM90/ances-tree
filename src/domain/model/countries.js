@@ -19,7 +19,9 @@ export const isCountryCode = (code) => CODES.includes(code);
 export function countryName(code, locale) {
   if (!code) return '';
   try {
-    return new Intl.DisplayNames([locale ?? navigator.language], { type: 'region' }).of(code) ?? code;
+    return (
+      new Intl.DisplayNames([locale ?? navigator.language], { type: 'region' }).of(code) ?? code
+    );
   } catch {
     return code;
   }

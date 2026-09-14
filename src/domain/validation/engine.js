@@ -48,7 +48,10 @@ export function validateBlocking(g) {
  * so the same problem is recognised across two runs of the validator.
  */
 export const issueKey = (found) =>
-  `${found.ruleId}|${found.subjects.map((s) => s.id).sort().join(',')}`;
+  `${found.ruleId}|${found.subjects
+    .map((s) => s.id)
+    .sort()
+    .join(',')}`;
 
 /** The keys of every blocking error a graph already carries. */
 export const blockingKeys = (issues) =>

@@ -61,14 +61,19 @@ export class MenuButton extends HTMLElement {
     setChildren(
       this.#menu,
       items.flatMap((item) => {
-        const button = el('button', { text: item.label, attrs: { type: 'button', role: 'menuitem' } });
+        const button = el('button', {
+          text: item.label,
+          attrs: { type: 'button', role: 'menuitem' },
+        });
         button.addEventListener('click', () => {
           this.close();
           item.action();
         });
 
         const entry = el('li', { attrs: { role: 'none' }, children: [button] });
-        return item.separatorBefore ? [el('li', { attrs: { role: 'none' }, children: [el('hr')] }), entry] : [entry];
+        return item.separatorBefore
+          ? [el('li', { attrs: { role: 'none' }, children: [el('hr')] }), entry]
+          : [entry];
       }),
     );
   }

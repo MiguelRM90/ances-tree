@@ -27,8 +27,14 @@ describe('translations', () => {
     const english = keysOf(en).sort();
     const spanish = keysOf(es).sort();
 
-    expect(spanish.filter((key) => !english.includes(key)), 'extra in Spanish').to.eql([]);
-    expect(english.filter((key) => !spanish.includes(key)), 'missing from Spanish').to.eql([]);
+    expect(
+      spanish.filter((key) => !english.includes(key)),
+      'extra in Spanish',
+    ).to.eql([]);
+    expect(
+      english.filter((key) => !spanish.includes(key)),
+      'missing from Spanish',
+    ).to.eql([]);
   });
 
   it('a key is the same kind of thing in both', () => {

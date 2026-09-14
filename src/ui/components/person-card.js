@@ -20,7 +20,7 @@ import { base, flags, sheet } from '../styles/sheets.js';
 import css from './person-card.css?inline';
 import { S } from '../../config/strings.js';
 import { issueLine } from '../issue-text.js';
-import { displayName } from '../../domain/graph/queries.js';
+import { displayName, documentsOf } from '../../domain/graph/queries.js';
 import { countryFlag, countryName } from '../../domain/model/countries.js';
 import { supportsFlagEmoji } from '../flag-support.js';
 import { formatLifespan } from '../../domain/date/format.js';
@@ -33,6 +33,7 @@ export class PersonCard extends HTMLElement {
   #person = null;
   #issues = [];
   #graph = null;
+  #documents = [];
   #portraitPath = null;
   #resolvePhoto = null;
   #button;
@@ -86,6 +87,12 @@ export class PersonCard extends HTMLElement {
     this.#photo.resolve = fn;
   }
 
+  /** Documents attached to this person. */
+  set documents(value) {
+    this.#documents = Array.isArray(value) ? value : [];
+    this.#render();
+  }
+
   /** Depth in the tree, 1-based, as ARIA requires. */
   set level(value) {
     this.#button.setAttribute('aria-level', String(Math.max(1, value)));
@@ -116,6 +123,12 @@ export class PersonCard extends HTMLElement {
     const name = displayName(person);
     const lifespan = formatLifespan(person.birth, person.death);
     const notes = this.#issues.map((issue) => issueLine(issue, this.#graph));
+    const docs =
+      this.#documents.length > 0
+        ? this.#documents
+        : this.#graph && person
+          ? documentsOf(this.#graph, person.id)
+          : [];
 
     this.#photo.person = person;
     this.#photo.path = this.#portraitPath;
@@ -131,16 +144,25 @@ export class PersonCard extends HTMLElement {
         ],
       }),
       el('span', { class: 'dates', text: lifespan }),
-      this.#noteMark(person.notes),
+      this.#marks(person.notes, docs),
       this.#flag(notes),
     ]);
+
+    const docText = docs.length > 0 ? S.card.hasDocuments(docs.length) : null;
 
     // aria-label replaces the whole content for a screen reader, so anything
     // meaningful shown visually has to be repeated here — including the notes,
     // which would otherwise be silently dropped.
     this.#button.setAttribute(
       'aria-label',
-      [name, countryName(person.nationality), lifespan, person.notes && S.card.hasNote, ...notes]
+      [
+        name,
+        countryName(person.nationality),
+        lifespan,
+        person.notes && S.card.hasNote,
+        docText,
+        ...notes,
+      ]
         .filter(Boolean)
         .join('. '),
     );
@@ -167,6 +189,52 @@ export class PersonCard extends HTMLElement {
       dataset: flag ? {} : { country: code },
       attrs: { title: countryName(code), 'aria-hidden': 'true' },
     });
+  }
+
+  /**
+   * Container for written notes and attached documents markers.
+   */
+  #marks(note, docs) {
+    const noteEl = this.#noteMark(note);
+    const docEl = this.#documentMark(docs);
+    if (!noteEl && !docEl) return null;
+
+    return el('span', {
+      class: 'marks',
+      children: [docEl, noteEl].filter(Boolean),
+    });
+  }
+
+  /**
+   * Attached documents on this person.
+   */
+  #documentMark(docs) {
+    if (!docs || docs.length === 0) return null;
+
+    const mark = svg('svg', {
+      class: 'doc-mark',
+      viewBox: '0 0 16 16',
+      fill: 'currentColor',
+      'aria-hidden': 'true',
+      focusable: 'false',
+    });
+
+    mark.append(
+      svg('path', {
+        d: 'M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z',
+      }),
+    );
+
+    const docNames = docs
+      .slice(0, 5)
+      .map((d) => d.caption || d.path.split('/').pop())
+      .join('\n');
+    const extra = docs.length > 5 ? `\n+${docs.length - 5}…` : '';
+
+    mark.append(svg('title', {}));
+    mark.lastChild.textContent = `${S.card.hasDocuments(docs.length)}\n${docNames}${extra}`;
+
+    return mark;
   }
 
   /**
@@ -208,9 +276,7 @@ export class PersonCard extends HTMLElement {
   #flag(notes) {
     if (notes.length === 0) return null;
 
-    const severity = this.#issues.some((i) => i.severity === Severity.ERROR)
-      ? 'error'
-      : 'warning';
+    const severity = this.#issues.some((i) => i.severity === Severity.ERROR) ? 'error' : 'warning';
 
     return el('span', {
       class: ['flag', severity],

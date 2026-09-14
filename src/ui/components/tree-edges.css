@@ -7,7 +7,11 @@
   z-index: -1;
   pointer-events: none;
 }
-svg { width: 100%; height: 100%; display: block; }
+svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
 /* These strokes are the content of a family tree, not decoration, so they
    carry real contrast (WCAG 1.4.11) and enough weight to survive it. */
@@ -17,7 +21,9 @@ path {
   stroke-width: var(--line-width);
   stroke-linejoin: round;
 }
-path.partner { stroke-width: calc(var(--line-width) + 0.5px); }
+path.partner {
+  stroke-width: calc(var(--line-width) + 0.5px);
+}
 
 /* The route from one person up to their parents, while they are pointed at. */
 path.lit {
@@ -39,5 +45,7 @@ path.pinned {
 /* SVG strokes are not reliably replaced in forced colours mode, so they are
    mapped explicitly. */
 @media (forced-colors: active) {
-  path { stroke: CanvasText; }
+  path {
+    stroke: CanvasText;
+  }
 }

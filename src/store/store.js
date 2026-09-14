@@ -36,13 +36,27 @@ class Store extends EventTarget {
   /** Where the user has been, so "back" means something. Not an edit history. */
   #trail = [];
 
-  get project() { return this.#project; }
-  get graph() { return this.#indexes; }
-  get directoryHandle() { return this.#dirHandle; }
-  get issues() { return this.#issues; }
-  get isOpen() { return this.#project !== null; }
-  get canUndo() { return this.#undo.length > 0; }
-  get canRedo() { return this.#redo.length > 0; }
+  get project() {
+    return this.#project;
+  }
+  get graph() {
+    return this.#indexes;
+  }
+  get directoryHandle() {
+    return this.#dirHandle;
+  }
+  get issues() {
+    return this.#issues;
+  }
+  get isOpen() {
+    return this.#project !== null;
+  }
+  get canUndo() {
+    return this.#undo.length > 0;
+  }
+  get canRedo() {
+    return this.#redo.length > 0;
+  }
 
   get focalPersonId() {
     return this.#project?.settings.focalPersonId ?? null;
@@ -126,8 +140,12 @@ class Store extends EventTarget {
     return { ok: true };
   }
 
-  undo() { this.#travel(this.#undo, this.#redo, 'undo'); }
-  redo() { this.#travel(this.#redo, this.#undo, 'redo'); }
+  undo() {
+    this.#travel(this.#undo, this.#redo, 'undo');
+  }
+  redo() {
+    this.#travel(this.#redo, this.#undo, 'redo');
+  }
 
   #travel(from, to, label) {
     const step = from.pop();

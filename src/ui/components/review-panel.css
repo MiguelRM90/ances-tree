@@ -69,13 +69,29 @@ li {
   border-radius: var(--radius-sm);
 }
 
-li[data-severity='ERROR'] { border-left-color: var(--c-error); }
-li[data-severity='WARNING'] { border-left-color: var(--c-warning); }
-li[data-severity='INFO'] { border-left-color: var(--c-border); }
+li[data-severity='ERROR'] {
+  border-left-color: var(--c-error);
+}
+li[data-severity='WARNING'] {
+  border-left-color: var(--c-warning);
+}
+li[data-severity='INFO'] {
+  border-left-color: var(--c-border);
+}
 
-.what { font-size: var(--fs-sm); }
-.who { display: flex; gap: var(--s-2); flex-wrap: wrap; }
-.who button { font-size: var(--fs-sm); padding: 0 var(--s-2); border-radius: 999px; }
+.what {
+  font-size: var(--fs-sm);
+}
+.who {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.who button {
+  font-size: var(--fs-sm);
+  padding: 0 var(--s-2);
+  border-radius: 999px;
+}
 
 .empty {
   padding: var(--s-8);
@@ -103,13 +119,20 @@ footer {
  * of related choices, and a wrapped second line reads as a different control.
  */
 @media (max-width: 640px) {
-  .body { padding: var(--s-2) var(--s-4) var(--s-4); }
-  footer { flex-wrap: wrap; padding: var(--s-3) var(--s-4); }
+  .body {
+    padding: var(--s-2) var(--s-4) var(--s-4);
+  }
+  footer {
+    flex-wrap: wrap;
+    padding: var(--s-3) var(--s-4);
+  }
 
   .filters {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .filters > * { flex: 0 0 auto; }
+  .filters > * {
+    flex: 0 0 auto;
+  }
 }

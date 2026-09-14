@@ -29,10 +29,7 @@ export const Precision = {
   NONE: 'NONE',
 };
 
-const MONTHS = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-];
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 const PREFIXES = {
   ABT: DateKind.ABOUT,
@@ -113,7 +110,8 @@ function parsePrefixed(raw, tokens, kind) {
   switch (kind) {
     case DateKind.BEFORE:
       return {
-        raw, kind,
+        raw,
+        kind,
         earliest: null,
         latest: shiftDays(span.earliest, -1),
         precision: span.precision,
@@ -121,7 +119,8 @@ function parsePrefixed(raw, tokens, kind) {
 
     case DateKind.AFTER:
       return {
-        raw, kind,
+        raw,
+        kind,
         earliest: shiftDays(span.latest, 1),
         latest: null,
         precision: span.precision,
@@ -170,7 +169,11 @@ function parseSpan(tokens) {
   const day = Number(parts[0]);
   if (!Number.isInteger(day) || day < 1 || day > lastDayOfMonth(year, month)) return null;
 
-  return { earliest: iso(year, month, day), latest: iso(year, month, day), precision: Precision.DAY };
+  return {
+    earliest: iso(year, month, day),
+    latest: iso(year, month, day),
+    precision: Precision.DAY,
+  };
 }
 
 function widen(span, years) {

@@ -139,6 +139,24 @@ legend {
   --photo-size: 4rem;
 }
 
+.shot-thumb {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  display: block;
+  transition: transform 0.15s ease;
+}
+.shot-thumb:hover,
+.shot-thumb:focus-visible {
+  transform: scale(1.06);
+}
+.shot-thumb:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 3px;
+}
+
 /* The portrait is marked by a ring plus a word, never by the ring alone. */
 .shot[data-portrait] person-photo {
   outline: 2px solid var(--c-accent);
@@ -229,6 +247,111 @@ footer .danger {
   border-color: var(--c-error);
 }
 
+/* Lightbox photo viewer */
+dialog.lightbox {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: var(--c-text);
+  padding: var(--s-4);
+  max-width: min(92vw, 850px);
+  max-height: min(90vh, 750px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+dialog.lightbox[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+dialog.lightbox::backdrop {
+  background: rgb(0 0 0 / 75%);
+  backdrop-filter: blur(4px);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  z-index: 10;
+  width: 2rem;
+  height: 2rem;
+  font-size: var(--fs-base);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--c-surface-sunken);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  cursor: pointer;
+}
+
+.lightbox-close:hover {
+  background: var(--c-border-subtle);
+}
+
+.lightbox-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.lightbox-nav {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-size: var(--fs-xl);
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--c-surface-sunken);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  cursor: pointer;
+  z-index: 5;
+}
+
+.lightbox-nav:hover {
+  background: var(--c-border-subtle);
+}
+
+.lightbox-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(90vh - 5rem);
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: calc(90vh - 7rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  display: block;
+  box-shadow: var(--shadow);
+}
+
+.lightbox-count {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /**
  * Phone width. Last in the file, after every rule it overrides.
  *
@@ -255,5 +378,19 @@ footer .danger {
      next to each other on a touch screen is how a family gets deleted. */
   footer .danger {
     margin-right: auto;
+  }
+
+  dialog.lightbox {
+    padding: var(--s-2);
+    width: 96vw;
+    max-height: 96vh;
+  }
+  .lightbox-nav {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--fs-lg);
+  }
+  .lightbox-img {
+    max-height: calc(96vh - 6rem);
   }
 }

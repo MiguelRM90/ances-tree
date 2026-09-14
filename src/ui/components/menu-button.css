@@ -95,5 +95,7 @@ hr {
   }
 
   /* A full-width sheet has the room to wrap a long label instead of clipping. */
-  .menu button { white-space: normal; }
+  .menu button {
+    white-space: normal;
+  }
 }

@@ -29,7 +29,10 @@ function consanguineousUnions(g) {
     if (!g.childrenByUnion.has(union.id)) continue;
 
     const common = closestCommonAncestor(
-      g, union.partner1Id, union.partner2Id, CONSANGUINITY_MAX_DEPTH,
+      g,
+      union.partner1Id,
+      union.partner2Id,
+      CONSANGUINITY_MAX_DEPTH,
     );
     if (!common) continue;
 
@@ -70,8 +73,12 @@ function siblingAsParent(g) {
 
     if (shared) {
       found.push(
-        issue('SIBLING_AS_PARENT', WARNING, [subject('parentChild', link.id)],
-          'validation.siblingAsParent'),
+        issue(
+          'SIBLING_AS_PARENT',
+          WARNING,
+          [subject('parentChild', link.id)],
+          'validation.siblingAsParent',
+        ),
       );
     }
   }

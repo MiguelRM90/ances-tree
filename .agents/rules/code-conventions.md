@@ -20,3 +20,8 @@ description: Code conventions, language policy, and Web Components standards
 
 4. **Unique Identifiers**:
    - Always use `crypto.randomUUID()` to generate IDs for persons, unions, media, and family relations.
+
+5. **Mandatory Tests and Documentation Review**:
+   - Before considering any task or change complete, **always verify both tests and documentation**:
+     - **Automated Tests**: Run `pnpm test` and `pnpm run lint`. Add or update test suites covering any new features, edge cases, or bug fixes.
+     - **Documentation**: Review relevant design documents in `docs/` and `README.md`. Update any impacted specifications, metrics (e.g., test counts), or usage guidelines to ensure code and docs remain in sync.

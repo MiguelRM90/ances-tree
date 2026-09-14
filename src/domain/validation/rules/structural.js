@@ -17,8 +17,12 @@ function selfParent(g) {
   for (const link of g.parentChildren.values()) {
     if (link.parentId === link.childId) {
       found.push(
-        issue('SELF_PARENT', E, [subject('parentChild', link.id), subject('person', link.parentId)],
-          'validation.selfParent'),
+        issue(
+          'SELF_PARENT',
+          E,
+          [subject('parentChild', link.id), subject('person', link.parentId)],
+          'validation.selfParent',
+        ),
       );
     }
   }
@@ -107,8 +111,12 @@ function duplicateEdges(g) {
     const first = seen.get(key);
     if (first) {
       found.push(
-        issue('DUPLICATE_EDGE', E, [subject('parentChild', first), subject('parentChild', link.id)],
-          'validation.duplicateEdge'),
+        issue(
+          'DUPLICATE_EDGE',
+          E,
+          [subject('parentChild', first), subject('parentChild', link.id)],
+          'validation.duplicateEdge',
+        ),
       );
     } else {
       seen.set(key, link.id);
@@ -125,8 +133,13 @@ function tooManyBiologicalParents(g) {
     const count = links.filter(isBiological).length;
     if (count > 2) {
       found.push(
-        issue('TOO_MANY_BIO_PARENTS', E, [subject('person', childId)],
-          'validation.tooManyBiologicalParents', { count }),
+        issue(
+          'TOO_MANY_BIO_PARENTS',
+          E,
+          [subject('person', childId)],
+          'validation.tooManyBiologicalParents',
+          { count },
+        ),
       );
     }
   }
@@ -219,4 +232,3 @@ export const structuralRules = [
   tooManyBiologicalParents,
   danglingRefs,
 ];
-

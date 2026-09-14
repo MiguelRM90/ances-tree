@@ -60,7 +60,10 @@ export class DateField extends HTMLElement {
     this.#slot = el('span', { class: 'controls-slot' });
     // The preview changes as the user types, so it is announced politely
     // rather than being silent decoration.
-    this.#preview = el('div', { class: 'preview', attrs: { role: 'status', 'aria-live': 'polite' } });
+    this.#preview = el('div', {
+      class: 'preview',
+      attrs: { role: 'status', 'aria-live': 'polite' },
+    });
 
     root.append(
       el('div', { class: 'controls', children: [this.#select, this.#slot] }),

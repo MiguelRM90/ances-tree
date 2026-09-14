@@ -32,9 +32,7 @@ export function describeIssue(issue, graph) {
   return {
     title: messageFor(issue),
     detail: people.map((person) => person.name).join(' · '),
-    context: ancestor
-      ? S.validation.commonAncestor(ancestor.name, issue.params.generations)
-      : '',
+    context: ancestor ? S.validation.commonAncestor(ancestor.name, issue.params.generations) : '',
     people: ancestor ? [...people, ancestor] : people,
   };
 }

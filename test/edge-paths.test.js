@@ -75,10 +75,7 @@ describe('descent paths', () => {
       ['p:b', box(300, 170)],
     ]);
 
-    const [path] = descentPaths(
-      [edge('u:1', 'p:a'), edge('u:1', 'p:b')],
-      boxes,
-    );
+    const [path] = descentPaths([edge('u:1', 'p:a'), edge('u:1', 'p:b')], boxes);
 
     const [[left, right]] = spans(path.d);
     expect(left).to.equal(100);
@@ -94,10 +91,7 @@ describe('descent paths', () => {
       ['p:c', box(500, 170)],
     ]);
 
-    const paths = descentPaths(
-      [edge('u:1', 'p:a'), edge('u:2', 'p:c'), edge('u:1', 'p:b')],
-      boxes,
-    );
+    const paths = descentPaths([edge('u:1', 'p:a'), edge('u:2', 'p:c'), edge('u:1', 'p:b')], boxes);
 
     expect(paths.map((p) => p.id)).to.eql(['descent:u:1', 'descent:u:2']);
   });
@@ -160,7 +154,9 @@ describe('descent paths', () => {
       ['u:1', box(200, 20, 12, 12)],
     ]);
 
-    expect(descentPaths([{ kind: 'partner', fromNodeId: 'p:a', toNodeId: 'u:1' }], boxes)).to.eql([]);
+    expect(descentPaths([{ kind: 'partner', fromNodeId: 'p:a', toNodeId: 'u:1' }], boxes)).to.eql(
+      [],
+    );
   });
 });
 

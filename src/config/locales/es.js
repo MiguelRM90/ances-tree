@@ -176,6 +176,11 @@ export const es = {
     documentsReused: (n) => `${n} ya estaban en este archivo`,
     documentsFailed: (n) => `${n} no se pudieron leer`,
     documentsHint: 'PDF, Word, Excel, texto y otros documentos adjuntos.',
+    viewPhoto: 'Ver foto',
+    closePhoto: 'Cerrar foto',
+    prevPhoto: 'Foto anterior',
+    nextPhoto: 'Foto siguiente',
+    photoCount: (current, total) => `${current} de ${total}`,
     dateHint: '12 MAY 1912 · ABT 1885 · BET 1900 AND 1905',
     dateUnrecognised: 'Se conserva tal cual, pero no se entiende como fecha.',
   },
@@ -196,6 +201,7 @@ export const es = {
   card: {
     issues: (n) => `${n} ${n === 1 ? 'aviso' : 'avisos'} sobre esta persona`,
     hasNote: 'Tiene una nota escrita',
+    hasDocuments: (n) => `${n} ${n === 1 ? 'documento adjunto' : 'documentos adjuntos'}`,
   },
 
   relations: {

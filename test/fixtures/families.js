@@ -47,7 +47,10 @@ export function minimalFamily() {
   });
 
   return {
-    father, mother, child, union,
+    father,
+    mother,
+    child,
+    union,
     data: project({
       persons: [father, mother, child],
       unions: [union],
@@ -82,17 +85,24 @@ export function mixedAdoptionFamily() {
   });
 
   return {
-    father, mother, child, union,
+    father,
+    mother,
+    child,
+    union,
     data: project({
       persons: [father, mother, child],
       unions: [union],
       parentChildren: [
         createParentChild({
-          parentId: father.id, childId: child.id, unionId: union.id,
+          parentId: father.id,
+          childId: child.id,
+          unionId: union.id,
           type: ParentType.BIOLOGICAL,
         }),
         createParentChild({
-          parentId: mother.id, childId: child.id, unionId: union.id,
+          parentId: mother.id,
+          childId: child.id,
+          unionId: union.id,
           type: ParentType.ADOPTED,
         }),
       ],
@@ -107,7 +117,9 @@ export function familyWithPlaceholder() {
   const child = person('Child', { born: '1930' });
 
   return {
-    known, ghost, child,
+    known,
+    ghost,
+    child,
     data: project({
       persons: [known, ghost, child],
       parentChildren: [
@@ -127,7 +139,11 @@ export function halfSiblingsFamily() {
   const childB = person('ChildB', { born: '1940' });
 
   return {
-    father, motherA, motherB, childA, childB,
+    father,
+    motherA,
+    motherB,
+    childA,
+    childB,
     data: project({
       persons: [father, motherA, motherB, childA, childB],
       parentChildren: [

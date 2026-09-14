@@ -16,7 +16,10 @@ import { Sex } from '../domain/model/factories.js';
 const SILHOUETTES = {
   [Sex.MALE]: [
     { tag: 'circle', attrs: { cx: 20, cy: 15, r: 6.5 } },
-    { tag: 'path', attrs: { d: 'M20 23c-6.9 0-12.5 4.6-12.5 11.5V36h25v-1.5C32.5 27.6 26.9 23 20 23Z' } },
+    {
+      tag: 'path',
+      attrs: { d: 'M20 23c-6.9 0-12.5 4.6-12.5 11.5V36h25v-1.5C32.5 27.6 26.9 23 20 23Z' },
+    },
   ],
 
   // Framed by hair and a narrower shoulder line.
@@ -33,7 +36,10 @@ const SILHOUETTES = {
 
   unknown: [
     { tag: 'circle', attrs: { cx: 20, cy: 15, r: 6.5 } },
-    { tag: 'path', attrs: { d: 'M20 23c-6.4 0-11.5 4.6-11.5 11.5V36h23v-1.5C31.5 27.6 26.4 23 20 23Z' } },
+    {
+      tag: 'path',
+      attrs: { d: 'M20 23c-6.4 0-11.5 4.6-11.5 11.5V36h23v-1.5C31.5 27.6 26.4 23 20 23Z' },
+    },
   ],
 };
 

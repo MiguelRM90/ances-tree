@@ -10,10 +10,23 @@
  */
 
 import {
-  CD_SIG, EOCD_SIG, ZIP64_EOCD_SIG, ZIP64_LOCATOR_SIG, ZIP64_EXTRA_ID,
-  METHOD_STORE, METHOD_DEFLATE, MAX16, MAX32,
-  LOCAL_HEADER_SIZE, CD_HEADER_SIZE, EOCD_SIZE, ZIP64_LOCATOR_SIZE,
-  decodeName, inflateRawStream, fromDosDateTime, safeEntryPath,
+  CD_SIG,
+  EOCD_SIG,
+  ZIP64_EOCD_SIG,
+  ZIP64_LOCATOR_SIG,
+  ZIP64_EXTRA_ID,
+  METHOD_STORE,
+  METHOD_DEFLATE,
+  MAX16,
+  MAX32,
+  LOCAL_HEADER_SIZE,
+  CD_HEADER_SIZE,
+  EOCD_SIZE,
+  ZIP64_LOCATOR_SIZE,
+  decodeName,
+  inflateRawStream,
+  fromDosDateTime,
+  safeEntryPath,
 } from './format.js';
 
 export class ZipError extends Error {
@@ -73,8 +86,7 @@ async function findEocd(blob) {
     };
 
     const locatorAt = at - ZIP64_LOCATOR_SIZE;
-    const hasZip64 =
-      locatorAt >= 0 && tail.getUint32(locatorAt, true) === ZIP64_LOCATOR_SIG;
+    const hasZip64 = locatorAt >= 0 && tail.getUint32(locatorAt, true) === ZIP64_LOCATOR_SIG;
 
     if (!hasZip64) return base;
 

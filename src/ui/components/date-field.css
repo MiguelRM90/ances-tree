@@ -1,10 +1,31 @@
-:host { display: grid; gap: var(--s-2); }
+:host {
+  display: grid;
+  gap: var(--s-2);
+}
 
-.controls { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
+.controls {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
 
-select { flex: 0 0 auto; }
-input { flex: 1 1 8rem; min-width: 6rem; }
-input.year { flex: 0 0 6rem; }
+select {
+  flex: 0 0 auto;
+}
+input {
+  flex: 1 1 8rem;
+  min-width: 6rem;
+}
+input.year {
+  flex: 0 0 6rem;
+}
 
-.preview { font-size: var(--fs-sm); color: var(--c-text-muted); min-height: 1.2em; }
-.preview.unknown { color: var(--c-warning); }
+.preview {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+  min-height: 1.2em;
+}
+.preview.unknown {
+  color: var(--c-warning);
+}

@@ -103,5 +103,4 @@ export class TreeEdges extends HTMLElement {
   }
 }
 
-
 customElements.define('tree-edges', TreeEdges);

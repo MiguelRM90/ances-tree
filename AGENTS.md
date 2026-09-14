@@ -147,3 +147,16 @@ Before modifying specific subsystems, consult the relevant design document:
 - **Validation rules or genealogical constraints**: [docs/validation-rules.md](docs/validation-rules.md)
 - **GEDCOM importer/exporter**: [docs/gedcom-mapping.md](docs/gedcom-mapping.md)
 - **Technical decisions or CSP**: [docs/decisions.md](docs/decisions.md)
+
+---
+
+## 8. Definition of Done: Mandatory Tests & Documentation Review
+
+Before concluding any task, feature, or bug fix:
+1. **Automated Verification**:
+   - Run tests in a real browser (`CHROME_PATH=/usr/bin/google-chrome pnpm test`). All tests must pass.
+   - Add new tests covering newly introduced functionality or edge cases.
+   - Run the linter (`pnpm run lint`) and production build (`pnpm run build`) to ensure zero errors and warnings.
+2. **Documentation Review**:
+   - Check and update [`README.md`](README.md) (e.g. test counts, feature highlights) and design specifications in [`docs/`](docs/).
+   - Ensure documentation never drifts from code behavior.

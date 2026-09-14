@@ -180,7 +180,10 @@ describe('mergeProjects', () => {
   it('lists only the media the current project lacks', () => {
     const current = project({ media: [{ id: '1', path: 'photos/a/1.jpg' }] });
     const incoming = project({
-      media: [{ id: '1', path: 'photos/a/1.jpg' }, { id: '2', path: 'photos/b/2.jpg' }],
+      media: [
+        { id: '1', path: 'photos/a/1.jpg' },
+        { id: '2', path: 'photos/b/2.jpg' },
+      ],
     });
 
     expect(newMediaOf(current, incoming).map((m) => m.path)).to.eql(['photos/b/2.jpg']);

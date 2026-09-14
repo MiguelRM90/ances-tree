@@ -21,8 +21,12 @@
   box-shadow: var(--shadow);
 }
 
-.results[hidden] { display: none; }
-li { border-radius: var(--radius-sm); }
+.results[hidden] {
+  display: none;
+}
+li {
+  border-radius: var(--radius-sm);
+}
 li button {
   display: block;
   width: 100%;
@@ -36,7 +40,9 @@ li[aria-selected='true'] button {
   background: var(--c-accent-soft);
   border: 0;
 }
-.name { font-weight: 600; }
+.name {
+  font-weight: 600;
+}
 .empty {
   padding: var(--s-2);
   font-size: var(--fs-sm);

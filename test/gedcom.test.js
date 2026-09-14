@@ -1,7 +1,19 @@
 import { expect } from '@open-wc/testing';
 import { exportGedcom } from '../src/domain/gedcom/export.js';
-import { createParentChild, ParentType, Certainty, UnionType, Sex } from '../src/domain/model/factories.js';
-import { minimalFamily, mixedAdoptionFamily, familyWithPlaceholder, person, project } from './fixtures/families.js';
+import {
+  createParentChild,
+  ParentType,
+  Certainty,
+  UnionType,
+  Sex,
+} from '../src/domain/model/factories.js';
+import {
+  minimalFamily,
+  mixedAdoptionFamily,
+  familyWithPlaceholder,
+  person,
+  project,
+} from './fixtures/families.js';
 
 // Fixed so the header date does not make the output vary between runs.
 const AT = new Date(Date.UTC(2026, 7, 15));
@@ -100,7 +112,17 @@ describe('GEDCOM export', () => {
     const b = person('B', { sex: Sex.FEMALE, born: '1902' });
     const data = project({
       persons: [a, b],
-      unions: [{ id: 'u1', partner1Id: a.id, partner2Id: b.id, type: UnionType.PARTNERS, startDate: null, endDate: null, notes: '' }],
+      unions: [
+        {
+          id: 'u1',
+          partner1Id: a.id,
+          partner2Id: b.id,
+          type: UnionType.PARTNERS,
+          startDate: null,
+          endDate: null,
+          notes: '',
+        },
+      ],
     });
 
     const text = write(data);
@@ -132,7 +154,17 @@ describe('GEDCOM export', () => {
     const b = person('B', { sex: Sex.MALE, born: '1902' });
     const data = project({
       persons: [a, b],
-      unions: [{ id: 'u1', partner1Id: a.id, partner2Id: b.id, type: UnionType.MARRIED, startDate: null, endDate: null, notes: '' }],
+      unions: [
+        {
+          id: 'u1',
+          partner1Id: a.id,
+          partner2Id: b.id,
+          type: UnionType.MARRIED,
+          startDate: null,
+          endDate: null,
+          notes: '',
+        },
+      ],
     });
 
     expect(write(data)).to.contain('HUSB/WIFE assigned by record order');

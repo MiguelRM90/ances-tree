@@ -17,7 +17,7 @@ import css from './tree-canvas.css?inline';
 import { S } from '../../config/strings.js';
 import { LAYOUT, layoutProperties } from '../../config/layout.js';
 import { buildLayout, NodeType } from '../../domain/layout/engine.js';
-import { portraitOf, displayName } from '../../domain/graph/queries.js';
+import { portraitOf, documentsOf, displayName } from '../../domain/graph/queries.js';
 import './person-card.js';
 import './union-node.js';
 import './tree-edges.js';
@@ -158,6 +158,7 @@ export class TreeCanvas extends HTMLElement {
     card.focusable = false;
     card.resolvePhoto = this.#resolvePhoto;
     card.portrait = portraitOf(this.#graph, person.id)?.path ?? null;
+    card.documents = documentsOf(this.#graph, person.id);
     card.person = person;
     card.issues = this.#issuesFor(person.id);
     return card;

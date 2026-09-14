@@ -38,15 +38,41 @@ header {
   border-bottom: 1px solid var(--c-border-subtle);
   background: var(--c-surface);
 }
-h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
-.spacer { flex: 1; }
-.status { font-size: var(--fs-sm); color: var(--c-text-muted); }
-.divider { width: 1px; height: 1.5rem; background: var(--c-border-subtle); margin: 0 var(--s-1); }
+h1 {
+  font-size: var(--fs-base);
+  margin: 0 var(--s-4) 0 0;
+  font-weight: 600;
+}
+.spacer {
+  flex: 1;
+}
+.status {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
+.divider {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--c-border-subtle);
+  margin: 0 var(--s-1);
+}
 
-.actions-inline { display: flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
-.actions-inline[hidden] { display: none; }
+.actions-inline {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.actions-inline[hidden] {
+  display: none;
+}
 
-.depth { display: flex; align-items: center; gap: var(--s-1); font-size: var(--fs-sm); }
+.depth {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-sm);
+}
 .depth select {
   font: inherit;
   color: var(--c-text);
@@ -56,19 +82,27 @@ h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
   padding: var(--s-1);
 }
 
-
 /* Narrow windows: the separators are decoration and the first thing to go,
    then the spacer stops forcing the status onto its own line. */
 @media (max-width: 1200px) {
-  .divider { display: none; }
-  .spacer { flex-basis: 100%; height: 0; }
+  .divider {
+    display: none;
+  }
+  .spacer {
+    flex-basis: 100%;
+    height: 0;
+  }
 }
 
 /* Narrower still: the toolbar labels are what costs the most room, so the
    generation pickers lose their words and keep their tooltips. */
 @media (max-width: 900px) {
-  .depth span { display: none; }
-  h1 { margin-right: var(--s-2); }
+  .depth span {
+    display: none;
+  }
+  h1 {
+    margin-right: var(--s-2);
+  }
 }
 
 /**
@@ -86,7 +120,9 @@ h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
   color: var(--c-warning);
 }
 
-.badge:hover { border-color: var(--c-warning); }
+.badge:hover {
+  border-color: var(--c-warning);
+}
 
 /* --- The list of archives in browser storage ----------------------------- */
 
@@ -107,9 +143,17 @@ h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
   gap: var(--s-3);
 }
 
-.listing h2, .listing h3 { margin: 0; }
-.listing h3 { font-size: var(--fs-base); margin-top: var(--s-4); }
-.hint { font-size: var(--fs-sm); }
+.listing h2,
+.listing h3 {
+  margin: 0;
+}
+.listing h3 {
+  font-size: var(--fs-base);
+  margin-top: var(--s-4);
+}
+.hint {
+  font-size: var(--fs-sm);
+}
 
 .archives {
   list-style: none;
@@ -134,13 +178,26 @@ h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
   padding: var(--s-3);
 }
 
-.archive .meta { font-size: var(--fs-sm); color: var(--c-text-muted); }
+.archive .meta {
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
+}
 
-.danger { color: var(--c-error); border-color: var(--c-border); }
-.danger:hover { border-color: var(--c-error); background: var(--c-error-soft); }
+.danger {
+  color: var(--c-error);
+  border-color: var(--c-border);
+}
+.danger:hover {
+  border-color: var(--c-error);
+  background: var(--c-error-soft);
+}
 
 /* Name first, then create: the field is what the button acts on. */
-.named { display: flex; gap: var(--s-2); flex: 1 1 16rem; }
+.named {
+  display: flex;
+  gap: var(--s-2);
+  flex: 1 1 16rem;
+}
 
 .name {
   flex: 1;
@@ -153,7 +210,9 @@ h1 { font-size: var(--fs-base); margin: 0 var(--s-4) 0 0; font-weight: 600; }
   padding: var(--s-2) var(--s-3);
 }
 
-.listing .actions { flex-wrap: wrap; }
+.listing .actions {
+  flex-wrap: wrap;
+}
 
 /* A disabled control still has to be legible: 0.45 opacity pushed the label
    under 3:1. Muted colours say "unavailable" without dissolving the text. */
@@ -163,7 +222,9 @@ button[disabled] {
   border-color: var(--c-border-subtle);
   background: var(--c-surface-sunken);
 }
-button[disabled]:hover { border-color: var(--c-border-subtle); }
+button[disabled]:hover {
+  border-color: var(--c-border-subtle);
+}
 
 /* The stage holds the scrolling surface and anything pinned over it. */
 main {
@@ -205,8 +266,13 @@ main {
   pointer-events: none;
 }
 
-.focal b { color: var(--c-text); font-weight: 600; }
-.focal[hidden] { display: none; }
+.focal b {
+  color: var(--c-text);
+  font-weight: 600;
+}
+.focal[hidden] {
+  display: none;
+}
 
 .screen {
   display: grid;
@@ -218,11 +284,26 @@ main {
   max-width: 34rem;
   margin: 0 auto;
 }
-.screen h2 { margin: 0; font-size: var(--fs-xl); }
-.screen p { margin: 0; color: var(--c-text-muted); }
-.actions { display: flex; gap: var(--s-3); margin-top: var(--s-4); }
-code { font-family: var(--font-mono); font-size: var(--fs-sm); }
-.error { color: var(--c-error); }
+.screen h2 {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+.screen p {
+  margin: 0;
+  color: var(--c-text-muted);
+}
+.actions {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.error {
+  color: var(--c-error);
+}
 
 /**
  * A finger is not a mouse pointer: 44 px is the smallest control most people
@@ -243,8 +324,13 @@ code { font-family: var(--font-mono); font-size: var(--fs-sm); }
  * searching is how you get anywhere in a tree you cannot see all of.
  */
 @media (max-width: 640px) {
-  header { padding: var(--s-2) var(--s-3); gap: var(--s-2) var(--s-1); }
-  h1 { display: none; }
+  header {
+    padding: var(--s-2) var(--s-3);
+    gap: var(--s-2) var(--s-1);
+  }
+  h1 {
+    display: none;
+  }
 
   /**
    * Nothing in the header may push the page wider than the screen.
@@ -255,7 +341,9 @@ code { font-family: var(--font-mono); font-size: var(--fs-sm); }
    * the screen. min-width: 0 lets them shrink; the ones that must not shrink
    * scroll instead.
    */
-  header > * { min-width: 0; }
+  header > * {
+    min-width: 0;
+  }
 
   .actions-inline {
     order: 2;
@@ -269,15 +357,31 @@ code { font-family: var(--font-mono); font-size: var(--fs-sm); }
   }
 
   /* Nothing in a scrolling row may shrink, or every label turns to ellipses. */
-  .actions-inline > * { flex: 0 0 auto; }
+  .actions-inline > * {
+    flex: 0 0 auto;
+  }
 
-  .spacer { display: none; }
-  person-search { order: 1; flex: 1 1 100%; }
-  .status, .badge { order: 3; }
+  .spacer {
+    display: none;
+  }
+  person-search {
+    order: 1;
+    flex: 1 1 100%;
+  }
+  .status,
+  .badge {
+    order: 3;
+  }
 
   /* The pinned label would sit on top of a phone-sized tree. */
-  .focal { display: none; }
+  .focal {
+    display: none;
+  }
 
-  .screen { padding: var(--s-6) var(--s-4); }
-  .screen.listing { max-width: 100%; }
+  .screen {
+    padding: var(--s-6) var(--s-4);
+  }
+  .screen.listing {
+    max-width: 100%;
+  }
 }

@@ -60,7 +60,6 @@ export class ReviewPanel extends HTMLElement {
       if (event.target === dialog) this.close();
     });
 
-
     this.#filters = el('div', { class: 'filters', attrs: { role: 'group' } });
     this.#body = el('div', { class: 'body' });
 
@@ -107,12 +106,16 @@ export class ReviewPanel extends HTMLElement {
 
   #renderFilters() {
     const counts = Object.fromEntries(
-      ORDER.map((severity) => [severity, this.#issues.filter((i) => i.severity === severity).length]),
+      ORDER.map((severity) => [
+        severity,
+        this.#issues.filter((i) => i.severity === severity).length,
+      ]),
     );
 
     const make = (severity, label) => {
       const button = el('button', {
-        text: severity === null ? `${label} ${this.#issues.length}` : `${label} ${counts[severity]}`,
+        text:
+          severity === null ? `${label} ${this.#issues.length}` : `${label} ${counts[severity]}`,
         attrs: { type: 'button', 'aria-pressed': String(this.#severity === severity) },
       });
       button.addEventListener('click', () => {

@@ -56,8 +56,12 @@ function deathBeforeBirth(g) {
     const severity = gradeOrder(birth, death);
     if (severity) {
       found.push(
-        issue('DEATH_BEFORE_BIRTH', severity, [subject('person', person.id)],
-          'validation.deathBeforeBirth'),
+        issue(
+          'DEATH_BEFORE_BIRTH',
+          severity,
+          [subject('person', person.id)],
+          'validation.deathBeforeBirth',
+        ),
       );
     }
   }
@@ -71,8 +75,13 @@ function implausibleLifespan(g) {
     const { min } = yearsBetween(birthDate(person), deathDate(person));
     if (min !== null && min > MAX_LIFESPAN_YEARS) {
       found.push(
-        issue('IMPLAUSIBLE_LIFESPAN', WARNING, [subject('person', person.id)],
-          'validation.implausibleLifespan', { years: min }),
+        issue(
+          'IMPLAUSIBLE_LIFESPAN',
+          WARNING,
+          [subject('person', person.id)],
+          'validation.implausibleLifespan',
+          { years: min },
+        ),
       );
     }
   }
@@ -99,9 +108,12 @@ function parentAge(g) {
     const order = isBefore(parentBirth, childBirth);
     if (order === Comparison.IMPOSSIBLE) {
       found.push(
-        issue('PARENT_BORN_AFTER_CHILD', ERROR,
+        issue(
+          'PARENT_BORN_AFTER_CHILD',
+          ERROR,
           [subject('person', parent.id), subject('person', child.id)],
-          'validation.parentBornAfterChild'),
+          'validation.parentBornAfterChild',
+        ),
       );
       continue;
     }
@@ -109,9 +121,13 @@ function parentAge(g) {
     const { max } = yearsBetween(parentBirth, childBirth);
     if (max !== null && max < MIN_PARENT_AGE) {
       found.push(
-        issue('PARENT_TOO_YOUNG', WARNING,
+        issue(
+          'PARENT_TOO_YOUNG',
+          WARNING,
           [subject('person', parent.id), subject('person', child.id)],
-          'validation.parentTooYoung', { age: max, threshold: MIN_PARENT_AGE }),
+          'validation.parentTooYoung',
+          { age: max, threshold: MIN_PARENT_AGE },
+        ),
       );
     }
 
@@ -120,9 +136,13 @@ function parentAge(g) {
       const { min } = yearsBetween(parentBirth, childBirth);
       if (min !== null && min > MAX_MOTHER_AGE) {
         found.push(
-          issue('PARENT_TOO_OLD', WARNING,
+          issue(
+            'PARENT_TOO_OLD',
+            WARNING,
             [subject('person', parent.id), subject('person', child.id)],
-            'validation.parentTooOld', { age: min, threshold: MAX_MOTHER_AGE }),
+            'validation.parentTooOld',
+            { age: min, threshold: MAX_MOTHER_AGE },
+          ),
         );
       }
     }
@@ -181,8 +201,12 @@ function unionDates(g) {
       const severity = gradeOrder(start, end);
       if (severity) {
         found.push(
-          issue('UNION_END_BEFORE_START', severity, [subject('union', union.id)],
-            'validation.unionEndBeforeStart'),
+          issue(
+            'UNION_END_BEFORE_START',
+            severity,
+            [subject('union', union.id)],
+            'validation.unionEndBeforeStart',
+          ),
         );
       }
     }
@@ -198,9 +222,12 @@ function unionDates(g) {
         const severity = gradeOrder(start, death);
         if (severity) {
           found.push(
-            issue('UNION_AFTER_DEATH', severity,
+            issue(
+              'UNION_AFTER_DEATH',
+              severity,
               [subject('union', union.id), subject('person', partnerId)],
-              'validation.unionAfterDeath'),
+              'validation.unionAfterDeath',
+            ),
           );
         }
       }
@@ -211,9 +238,12 @@ function unionDates(g) {
       const order = isBefore(birth, start);
       if (order === Comparison.IMPOSSIBLE) {
         found.push(
-          issue('UNION_BEFORE_BIRTH', ERROR,
+          issue(
+            'UNION_BEFORE_BIRTH',
+            ERROR,
             [subject('union', union.id), subject('person', partnerId)],
-            'validation.unionBeforeBirth'),
+            'validation.unionBeforeBirth',
+          ),
         );
         continue;
       }
@@ -221,9 +251,13 @@ function unionDates(g) {
       const { max } = yearsBetween(birth, start);
       if (max !== null && max < MIN_UNION_AGE) {
         found.push(
-          issue('UNION_TOO_YOUNG', WARNING,
+          issue(
+            'UNION_TOO_YOUNG',
+            WARNING,
             [subject('union', union.id), subject('person', partnerId)],
-            'validation.unionTooYoung', { age: max }),
+            'validation.unionTooYoung',
+            { age: max },
+          ),
         );
       }
     }

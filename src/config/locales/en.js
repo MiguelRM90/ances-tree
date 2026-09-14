@@ -168,6 +168,11 @@ export const en = {
     documentsReused: (n) => `${n} already in this archive`,
     documentsFailed: (n) => `${n} could not be read`,
     documentsHint: 'PDF, Word, Excel, text and other attached documents.',
+    viewPhoto: 'View photo',
+    closePhoto: 'Close photo',
+    prevPhoto: 'Previous photo',
+    nextPhoto: 'Next photo',
+    photoCount: (current, total) => `${current} of ${total}`,
     // Only shown for the free-text mode: everything else has its own control.
     dateHint: '12 MAY 1912 · ABT 1885 · BET 1900 AND 1905',
     dateUnrecognised: 'Kept as written, but not understood as a date.',
@@ -193,6 +198,7 @@ export const en = {
   card: {
     issues: (n) => `${n} ${n === 1 ? 'check' : 'checks'} on this person`,
     hasNote: 'Has a written note',
+    hasDocuments: (n) => `${n} ${n === 1 ? 'attached document' : 'attached documents'}`,
   },
 
   relations: {

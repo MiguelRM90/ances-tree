@@ -1,7 +1,11 @@
 import { expect } from '@open-wc/testing';
 import { buildIndexes } from '../src/domain/graph/indexes.js';
 import { parentsOf, childrenOf, siblingsOf, childrenOfUnion } from '../src/domain/graph/queries.js';
-import { ancestorsOf, wouldCreateCycle, closestCommonAncestor } from '../src/domain/graph/traversal.js';
+import {
+  ancestorsOf,
+  wouldCreateCycle,
+  closestCommonAncestor,
+} from '../src/domain/graph/traversal.js';
 import { assignGenerations } from '../src/domain/graph/generations.js';
 import { buildLayout, NodeType } from '../src/domain/layout/engine.js';
 import { ParentType, Sex, createUnion, createParentChild } from '../src/domain/model/factories.js';
@@ -157,9 +161,7 @@ describe('layout', () => {
     const g = buildIndexes(data);
     const { rows, edges } = buildLayout(g, data.settings.focalPersonId);
 
-    const unionNodes = rows
-      .flatMap((r) => r.nodes)
-      .filter((n) => n.type === NodeType.UNION);
+    const unionNodes = rows.flatMap((r) => r.nodes).filter((n) => n.type === NodeType.UNION);
 
     expect(unionNodes).to.have.lengthOf(1);
     expect(unionNodes[0].entityId).to.equal(union.id);
@@ -225,9 +227,12 @@ describe('layout', () => {
 
       // Each child immediately followed by their own spouse, oldest first.
       expect(order).to.eql([
-        children[0].id, spouses[0].id,
-        children[1].id, spouses[1].id,
-        children[2].id, spouses[2].id,
+        children[0].id,
+        spouses[0].id,
+        children[1].id,
+        spouses[1].id,
+        children[2].id,
+        spouses[2].id,
       ]);
     });
 
@@ -279,8 +284,16 @@ describe('layout', () => {
           unions: [focalUnion, ...branches.map((b) => b.union)],
           parentChildren: [
             ...branches.flatMap((b) => [
-              createParentChild({ parentId: focal.id, childId: b.child.id, unionId: focalUnion.id }),
-              createParentChild({ parentId: spouse.id, childId: b.child.id, unionId: focalUnion.id }),
+              createParentChild({
+                parentId: focal.id,
+                childId: b.child.id,
+                unionId: focalUnion.id,
+              }),
+              createParentChild({
+                parentId: spouse.id,
+                childId: b.child.id,
+                unionId: focalUnion.id,
+              }),
             ]),
             ...branches.flatMap((b) =>
               b.kids.flatMap((kid) => [
@@ -292,7 +305,9 @@ describe('layout', () => {
         }),
       );
 
-      const row = buildLayout(g, focal.id, { up: 0, down: 2 }).rows.find((r) => r.level === 2).nodes;
+      const row = buildLayout(g, focal.id, { up: 0, down: 2 }).rows.find(
+        (r) => r.level === 2,
+      ).nodes;
       const gaps = row.slice(1).map((node, i) => node.x - (row[i].x + row[i].width));
 
       // Between two families, the gap is larger than any gap inside one.
@@ -406,7 +421,11 @@ describe('layout', () => {
       const second = createUnion({ partner1Id: t1.id, partner2Id: t3.id });
 
       return {
-        t1, t2, t3, first, second,
+        t1,
+        t2,
+        t3,
+        first,
+        second,
         data: project({
           persons: [t1, t2, t3],
           unions: [first, second],
@@ -415,8 +434,7 @@ describe('layout', () => {
       };
     };
 
-    const nodesAt = (layout, level) =>
-      layout.rows.find((row) => row.level === level).nodes;
+    const nodesAt = (layout, level) => layout.rows.find((row) => row.level === level).nodes;
 
     it('puts the shared person between the two partners', () => {
       const { t1, t2, t3, data } = remarried();

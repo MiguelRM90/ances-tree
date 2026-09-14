@@ -15,13 +15,7 @@ import { MAX_JSON_BYTES, BACKUP_COPIES } from '../config/limits.js';
 import { StorageError } from './error.js';
 import { isBrowserStorage } from './backend.js';
 import { createBrowserFolder } from './opfs.js';
-import {
-  FAMILY_FILE,
-  MANIFEST_FILE,
-  PHOTOS_DIR,
-  DOCUMENTS_DIR,
-  BACKUPS_DIR,
-} from './names.js';
+import { FAMILY_FILE, MANIFEST_FILE, PHOTOS_DIR, DOCUMENTS_DIR, BACKUPS_DIR } from './names.js';
 
 export { StorageError };
 export { FAMILY_FILE, MANIFEST_FILE, PHOTOS_DIR, DOCUMENTS_DIR, BACKUPS_DIR };

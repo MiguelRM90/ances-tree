@@ -16,7 +16,6 @@ import { createBrowserFolder, removeBrowserFolder } from '../src/storage/opfs.js
 import { person, project, minimalFamily } from './fixtures/families.js';
 import '../src/ui/components/relation-editor.js';
 
-
 /**
  * The relationship edits, tested as the pure project-to-project functions they
  * are underneath. The store adds undo and the refusal of anything blocking;
@@ -69,7 +68,11 @@ function childWithOneParentAndAStepIn() {
   const link = createParentChild({ parentId: father.id, childId: child.id });
 
   return {
-    child, father, mother, union, link,
+    child,
+    father,
+    mother,
+    union,
+    link,
     data: project({
       persons: [child, father, mother],
       unions: [union],
@@ -366,7 +369,11 @@ describe('through the store', () => {
   it('automatically creates a union when adding a second biological parent via addParentFor', async () => {
     const child = person('Child');
     const father = person('Father');
-    const link = createParentChild({ parentId: father.id, childId: child.id, type: ParentType.BIOLOGICAL });
+    const link = createParentChild({
+      parentId: father.id,
+      childId: child.id,
+      type: ParentType.BIOLOGICAL,
+    });
     await openWith(project({ persons: [child, father], parentChildren: [link] }));
 
     const result = actions.addParentFor(child.id);
@@ -374,7 +381,10 @@ describe('through the store', () => {
 
     const unions = [...store.graph.unions.values()];
     expect(unions).to.have.lengthOf(1);
-    expect([unions[0].partner1Id, unions[0].partner2Id]).to.have.members([father.id, result.person.id]);
+    expect([unions[0].partner1Id, unions[0].partner2Id]).to.have.members([
+      father.id,
+      result.person.id,
+    ]);
 
     const links = parentLinksOf(store.graph, child.id);
     expect(links).to.have.lengthOf(2);
@@ -401,7 +411,11 @@ describe('through the store', () => {
     const child = person('Child');
     const father = person('Father');
     const mother = person('Mother');
-    const link = createParentChild({ parentId: father.id, childId: child.id, type: ParentType.BIOLOGICAL });
+    const link = createParentChild({
+      parentId: father.id,
+      childId: child.id,
+      type: ParentType.BIOLOGICAL,
+    });
     await openWith(project({ persons: [child, father, mother], parentChildren: [link] }));
 
     const result = actions.addParentLink(child.id, mother.id);
@@ -421,7 +435,11 @@ describe('through the store', () => {
     const father = person('Father');
     const mother = person('Mother');
     const union = createUnion({ partner1Id: father.id, partner2Id: mother.id });
-    const link = createParentChild({ parentId: father.id, childId: child.id, type: ParentType.BIOLOGICAL });
+    const link = createParentChild({
+      parentId: father.id,
+      childId: child.id,
+      type: ParentType.BIOLOGICAL,
+    });
     await openWith(
       project({
         persons: [child, father, mother],
@@ -459,7 +477,11 @@ describe('through the store', () => {
     const child = person('Child');
     const father = person('Father');
     const guardian = person('Guardian');
-    const link = createParentChild({ parentId: father.id, childId: child.id, type: ParentType.BIOLOGICAL });
+    const link = createParentChild({
+      parentId: father.id,
+      childId: child.id,
+      type: ParentType.BIOLOGICAL,
+    });
     await openWith(project({ persons: [child, father, guardian], parentChildren: [link] }));
 
     const result = actions.addParentLink(child.id, guardian.id, { type: ParentType.GUARDIAN });
@@ -474,7 +496,11 @@ describe('through the store', () => {
     const child = person('Child');
     const father = person('Father');
     const mother = person('Mother');
-    const link = createParentChild({ parentId: father.id, childId: child.id, type: ParentType.BIOLOGICAL });
+    const link = createParentChild({
+      parentId: father.id,
+      childId: child.id,
+      type: ParentType.BIOLOGICAL,
+    });
     await openWith(project({ persons: [child, father, mother], parentChildren: [link] }));
 
     const result = actions.addParentLink(child.id, mother.id, { createUnion: false });
@@ -627,4 +653,3 @@ describe('relation editor UI', () => {
     expect(input.value).to.equal('');
   });
 });
-

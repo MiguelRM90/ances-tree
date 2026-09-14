@@ -21,6 +21,12 @@ const styles = sheet(css);
 
 export class PersonEditor extends HTMLElement {
   #dialog;
+  #photoDialog;
+  #viewerImage;
+  #viewerCount;
+  #viewerPrevBtn;
+  #viewerNextBtn;
+  #viewerIndex = 0;
   #fields = {};
   #person = null;
   #photos = [];
@@ -35,7 +41,8 @@ export class PersonEditor extends HTMLElement {
     const root = this.attachShadow({ mode: 'open' });
     root.adoptedStyleSheets = [base, styles];
     this.#dialog = this.#build();
-    root.append(this.#dialog);
+    this.#photoDialog = this.#buildPhotoViewer();
+    root.append(this.#dialog, this.#photoDialog);
   }
 
   /** @param {(path: string) => Promise<string|null>} fn */
@@ -81,6 +88,9 @@ export class PersonEditor extends HTMLElement {
   }
 
   close() {
+    if (this.#photoDialog?.open) {
+      this.#photoDialog.close();
+    }
     if (this.#isNew && this.#person) {
       emit(this, 'person:delete', { personId: this.#person.id });
       this.#isNew = false;
@@ -255,7 +265,7 @@ export class PersonEditor extends HTMLElement {
 
     setChildren(
       this.#fields.gallery,
-      this.#photos.map((item) => {
+      this.#photos.map((item, index) => {
         const isPortrait = item.links.some(
           (link) => link.targetId === person.id && link.role === MediaRole.PORTRAIT,
         );
@@ -264,6 +274,17 @@ export class PersonEditor extends HTMLElement {
         photo.resolve = this.#resolvePhoto;
         photo.person = person;
         photo.path = item.path;
+
+        const photoBtn = el('button', {
+          class: 'shot-thumb',
+          attrs: {
+            type: 'button',
+            title: S.editor.viewPhoto,
+            'aria-label': S.editor.viewPhoto,
+          },
+          children: [photo],
+        });
+        photoBtn.addEventListener('click', () => this.#openPhotoViewer(index));
 
         const promote = el('button', {
           text: '★',
@@ -294,7 +315,7 @@ export class PersonEditor extends HTMLElement {
           class: 'shot',
           attrs: { 'data-portrait': isPortrait || null },
           children: [
-            photo,
+            photoBtn,
             isPortrait ? el('span', { class: 'tag', text: S.editor.portrait }) : null,
             el('div', { class: 'shot-actions', children: [promote, drop] }),
           ],
@@ -307,6 +328,130 @@ export class PersonEditor extends HTMLElement {
   refreshPhotos(photos) {
     this.#photos = photos;
     this.#renderGallery();
+    if (this.#photoDialog?.open) {
+      if (this.#photos.length === 0) {
+        this.#photoDialog.close();
+      } else {
+        if (this.#viewerIndex >= this.#photos.length) {
+          this.#viewerIndex = Math.max(0, this.#photos.length - 1);
+        }
+        void this.#updateViewerPhoto();
+      }
+    }
+  }
+
+  #buildPhotoViewer() {
+    const dialog = document.createElement('dialog');
+    dialog.classList.add('lightbox');
+    dialog.setAttribute('aria-label', S.editor.viewPhoto);
+
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    const closeBtn = el('button', {
+      class: 'lightbox-close',
+      text: '✕',
+      attrs: {
+        type: 'button',
+        title: S.editor.closePhoto,
+        'aria-label': S.editor.closePhoto,
+      },
+    });
+    closeBtn.addEventListener('click', () => dialog.close());
+
+    this.#viewerPrevBtn = el('button', {
+      class: ['lightbox-nav', 'prev'],
+      text: '‹',
+      attrs: {
+        type: 'button',
+        title: S.editor.prevPhoto,
+        'aria-label': S.editor.prevPhoto,
+      },
+    });
+    this.#viewerPrevBtn.addEventListener('click', () => this.#navigatePhoto(-1));
+
+    this.#viewerNextBtn = el('button', {
+      class: ['lightbox-nav', 'next'],
+      text: '›',
+      attrs: {
+        type: 'button',
+        title: S.editor.nextPhoto,
+        'aria-label': S.editor.nextPhoto,
+      },
+    });
+    this.#viewerNextBtn.addEventListener('click', () => this.#navigatePhoto(1));
+
+    this.#viewerImage = el('img', {
+      class: 'lightbox-img',
+      attrs: { alt: '', decoding: 'async' },
+    });
+
+    this.#viewerCount = el('span', { class: 'lightbox-count' });
+
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        event.stopPropagation();
+        this.#navigatePhoto(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.stopPropagation();
+        this.#navigatePhoto(1);
+      }
+    });
+
+    dialog.append(
+      closeBtn,
+      el('div', {
+        class: 'lightbox-body',
+        children: [
+          this.#viewerPrevBtn,
+          el('div', {
+            class: 'lightbox-frame',
+            children: [this.#viewerImage, this.#viewerCount],
+          }),
+          this.#viewerNextBtn,
+        ],
+      }),
+    );
+
+    return dialog;
+  }
+
+  #openPhotoViewer(index) {
+    if (!this.#photos || this.#photos.length === 0) return;
+    this.#viewerIndex = Math.max(0, Math.min(index, this.#photos.length - 1));
+    this.#photoDialog.showModal();
+    void this.#updateViewerPhoto();
+  }
+
+  async #updateViewerPhoto() {
+    const item = this.#photos[this.#viewerIndex];
+    if (!item) return;
+
+    const hasMultiple = this.#photos.length > 1;
+    this.#viewerPrevBtn.hidden = !hasMultiple;
+    this.#viewerNextBtn.hidden = !hasMultiple;
+    this.#viewerCount.hidden = !hasMultiple;
+
+    if (hasMultiple) {
+      this.#viewerCount.textContent = S.editor.photoCount(
+        this.#viewerIndex + 1,
+        this.#photos.length,
+      );
+    }
+
+    if (this.#resolvePhoto) {
+      const url = await this.#resolvePhoto(item.path);
+      if (url) {
+        this.#viewerImage.src = url;
+      }
+    }
+  }
+
+  #navigatePhoto(direction) {
+    if (this.#photos.length <= 1) return;
+    this.#viewerIndex = (this.#viewerIndex + direction + this.#photos.length) % this.#photos.length;
+    void this.#updateViewerPhoto();
   }
 
   #documentFieldset() {

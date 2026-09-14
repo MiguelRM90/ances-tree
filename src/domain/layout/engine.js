@@ -182,8 +182,7 @@ function anchorOrder(g, ids) {
 
 const widthOf = (items, metrics) =>
   items.reduce(
-    (total, item) =>
-      total + (item.type === NodeType.UNION ? metrics.unionSize : metrics.cardWidth),
+    (total, item) => total + (item.type === NodeType.UNION ? metrics.unionSize : metrics.cardWidth),
     0,
   ) +
   (items.length - 1) * metrics.itemGap;
@@ -249,8 +248,7 @@ function orderRows(g, blocksByLevel, levels) {
     [...blocks]
       .map((block) => orient(block, (id) => anchorOfPerson(id, linksOf, endOf)))
       .sort(
-        (a, b) =>
-          anchorOf(a, linksOf, endOf) - anchorOf(b, linksOf, endOf) || compareBirth(a, b),
+        (a, b) => anchorOf(a, linksOf, endOf) - anchorOf(b, linksOf, endOf) || compareBirth(a, b),
       );
 
   const present = [...blocksByLevel.keys()].sort((a, b) => a - b);
@@ -267,17 +265,27 @@ function orderRows(g, blocksByLevel, levels) {
 
   commit(
     0,
-    [...(blocksByLevel.get(0) ?? [])].map((block) => orient(block, isBloodRelative)).sort(compareBirth),
+    [...(blocksByLevel.get(0) ?? [])]
+      .map((block) => orient(block, isBloodRelative))
+      .sort(compareBirth),
   );
 
   for (let level = 1; level <= highest; level += 1) {
     const blocks = blocksByLevel.get(level);
-    if (blocks) commit(level, sortBy(blocks, parentLinksOf, (link) => link.parentId));
+    if (blocks)
+      commit(
+        level,
+        sortBy(blocks, parentLinksOf, (link) => link.parentId),
+      );
   }
 
   for (let level = -1; level >= lowest; level -= 1) {
     const blocks = blocksByLevel.get(level);
-    if (blocks) commit(level, sortBy(blocks, childLinksOf, (link) => link.childId));
+    if (blocks)
+      commit(
+        level,
+        sortBy(blocks, childLinksOf, (link) => link.childId),
+      );
   }
 
   return [...result.entries()].sort((a, b) => a[0] - b[0]);
