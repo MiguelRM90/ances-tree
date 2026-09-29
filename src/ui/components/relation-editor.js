@@ -83,8 +83,9 @@ export class RelationEditor extends HTMLElement {
   #build() {
     const dialog = document.createElement('dialog');
     dialog.setAttribute('aria-labelledby', 'relations-title');
-    dialog.addEventListener('click', (event) => {
-      if (event.target === dialog) this.close();
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      this.close();
     });
 
     this.#title = el('h2', { attrs: { id: 'relations-title' } });

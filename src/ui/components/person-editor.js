@@ -104,9 +104,6 @@ export class PersonEditor extends HTMLElement {
     // infer is its own name.
     dialog.setAttribute('aria-labelledby', 'editor-title');
 
-    dialog.addEventListener('click', (event) => {
-      if (event.target === dialog) this.close();
-    });
     dialog.addEventListener('cancel', (event) => {
       event.preventDefault();
       this.close();
@@ -345,8 +342,9 @@ export class PersonEditor extends HTMLElement {
     dialog.classList.add('lightbox');
     dialog.setAttribute('aria-label', S.editor.viewPhoto);
 
-    dialog.addEventListener('click', (event) => {
-      if (event.target === dialog) dialog.close();
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      dialog.close();
     });
 
     const closeBtn = el('button', {

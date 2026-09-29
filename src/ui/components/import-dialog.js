@@ -51,8 +51,9 @@ export class ImportDialog extends HTMLElement {
     const dialog = document.createElement('dialog');
     dialog.setAttribute('aria-labelledby', 'import-title');
 
-    dialog.addEventListener('click', (event) => {
-      if (event.target === dialog) this.close();
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      this.close();
     });
 
     this.#card = el('div', { class: 'card' });
