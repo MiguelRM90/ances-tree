@@ -24,7 +24,7 @@ export const LAYOUT = {
   familyGap: 80,
 
   /** Between generations. */
-  rowGap: 64,
+  rowGap: 80,
 
   /** Around the whole tree. */
   padding: 32,

@@ -247,7 +247,7 @@ Medido sobre 10.000 personas: **85% de las familias centradas con menos de 1 px 
 
 ### Fase 5 — Trazado SVG
 
-Una capa `<svg>` del tamaño exacto del árbol, con rutas ortogonales `<path>`. Una ruta por grupo de hermanos, escalonadas en tres alturas para que familias vecinas nunca sean colineales.
+Una capa `<svg>` del tamaño exacto del árbol, con rutas ortogonales `<path>`. Una ruta por grupo de hermanos, agrupadas por nivel generacional y asignadas a pistas escalonadas descendentes de izquierda a derecha para evitar colisiones horizontales y que las familias vecinas nunca sean colineales.
 
 **Nada mide el DOM.** Las coordenadas vienen de la fase 4, así que no hay `getBoundingClientRect`, ni `requestAnimationFrame`, ni recálculo en `resize`.
 

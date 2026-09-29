@@ -10,15 +10,17 @@
  * SVG layer.
  */
 
-/** Distance from the children up to their sibling bar. */
+/** Distance from the children up to the lowest sibling bar. */
 export const BAR_GAP = 18;
 
-/**
- * Neighbouring families are staggered across three heights. Without it their
- * bars sit on one continuous horizontal line and the whole row reads as a
- * single set of siblings.
- */
-export const BAR_STEP = 14;
+/** Distance between staggered tracks. */
+export const BAR_STEP = 11;
+
+/** Maximum number of staggered track heights available in the inter-row gap. */
+export const MAX_TRACKS = 6;
+
+/** Buffer in pixels to treat nearly-adjacent horizontal segments as conflicting. */
+export const COLLISION_BUFFER = 16;
 
 /** Horizontal run between a card and its union node, at the same height. */
 export function partnerPath(from, to) {
@@ -33,7 +35,7 @@ export function partnerPath(from, to) {
  *
  * @param {Array<{kind: string, fromNodeId: string, toNodeId: string}>} edges
  * @param {Map<string, object>} boxes  node id -> measured box
- * @returns {Array<{id: string, d: string}>}
+ * @returns {Array<{id: string, d: string, children: string[]}>}
  */
 export function descentPaths(edges, boxes) {
   const groups = new Map();
@@ -46,33 +48,107 @@ export function descentPaths(edges, boxes) {
     if (!from || !to) continue;
 
     const group = groups.get(edge.fromNodeId);
-    if (group) group.children.push(to);
-    else groups.set(edge.fromNodeId, { from, children: [to] });
+    if (group) {
+      if (!group.children.some((child) => child.nodeId === to.nodeId)) {
+        group.children.push(to);
+      }
+    } else {
+      groups.set(edge.fromNodeId, { fromNodeId: edge.fromNodeId, from, children: [to] });
+    }
   }
 
-  // Ordered left to right so the stagger alternates between neighbours rather
-  // than at random.
-  const ordered = [...groups.entries()].sort(
-    (a, b) => leftmost(a[1].children) - leftmost(b[1].children),
-  );
+  if (groups.size === 0) return [];
 
-  return ordered.map(([fromNodeId, group], index) => ({
-    id: `descent:${fromNodeId}`,
-    d: familyPath(group, index),
-    // Which cards hang off this bar, so hovering one can light up the route
-    // back to its parents.
-    children: group.children.map((child) => child.nodeId).filter(Boolean),
-  }));
+  const rows = new Map();
+  for (const group of groups.values()) {
+    const childTop = Math.min(...group.children.map((c) => c.top));
+    const rowKey = Math.round(childTop);
+    const row = rows.get(rowKey);
+    if (row) row.push(group);
+    else rows.set(rowKey, [group]);
+  }
+
+  const result = [];
+
+  for (const row of rows.values()) {
+    const families = row.map((group) => {
+      const xs = [group.from.cx, ...group.children.map((c) => c.cx)];
+      const left = Math.min(...xs);
+      const right = Math.max(...xs);
+      return {
+        ...group,
+        left,
+        right,
+        childTop: Math.min(...group.children.map((c) => c.top)),
+      };
+    });
+
+    families.sort((a, b) => a.left - b.left || a.from.cx - b.from.cx || a.right - b.right);
+
+    const tracks = assignTracks(families);
+    const rowMaxTrack = Math.max(...tracks);
+
+    for (let i = 0; i < families.length; i++) {
+      const fam = families[i];
+      const track = tracks[i];
+      result.push({
+        id: `descent:${fam.fromNodeId}`,
+        d: familyPath(fam, track, rowMaxTrack),
+        children: fam.children.map((child) => child.nodeId).filter(Boolean),
+      });
+    }
+  }
+
+  return result;
 }
 
-function familyPath({ from, children }, index) {
-  const childTop = Math.min(...children.map((child) => child.top));
-  const barY = childTop - (BAR_GAP + (index % 3) * BAR_STEP);
+function assignTracks(families) {
+  const tracks = [];
 
-  // The stem's own x belongs in the bar's span. Leaving it out — which is what
-  // skipping the bar for an only child amounted to — left the line hanging from
-  // the parents and the line entering the child as two disconnected strokes
-  // whenever the union was not directly above the child.
+  for (let i = 0; i < families.length; i++) {
+    const current = families[i];
+
+    const conflictingTracks = [];
+    for (let j = 0; j < i; j++) {
+      const prev = families[j];
+      const overlaps =
+        current.left <= prev.right + COLLISION_BUFFER &&
+        prev.left <= current.right + COLLISION_BUFFER;
+      if (overlaps) {
+        conflictingTracks.push(tracks[j]);
+      }
+    }
+
+    let assigned;
+    if (conflictingTracks.length === 0) {
+      assigned = 0;
+    } else {
+      const maxConf = Math.max(...conflictingTracks);
+      const candidate = maxConf + 1;
+      if (candidate < MAX_TRACKS && !conflictingTracks.includes(candidate)) {
+        assigned = candidate;
+      } else {
+        for (let t = 0; t < MAX_TRACKS; t++) {
+          if (!conflictingTracks.includes(t)) {
+            assigned = t;
+            break;
+          }
+        }
+        if (assigned === undefined) {
+          assigned = candidate % MAX_TRACKS;
+        }
+      }
+    }
+
+    tracks.push(assigned);
+  }
+
+  return tracks;
+}
+
+function familyPath({ from, children, childTop }, track, rowMaxTrack = track) {
+  const barY = childTop - (BAR_GAP + (rowMaxTrack - track) * BAR_STEP);
+
   const xs = [from.cx, ...children.map((child) => child.cx)];
   const left = Math.min(...xs);
   const right = Math.max(...xs);
@@ -83,5 +159,3 @@ function familyPath({ from, children }, index) {
 
   return `${stem}${bar}${drops}`;
 }
-
-const leftmost = (children) => Math.min(...children.map((child) => child.cx));

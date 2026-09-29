@@ -96,8 +96,7 @@ describe('descent paths', () => {
     expect(paths.map((p) => p.id)).to.eql(['descent:u:1', 'descent:u:2']);
   });
 
-  // Bars on one continuous line made a whole row read as a single sibling set.
-  it('staggers neighbouring families so their bars are not collinear', () => {
+  it('keeps families at the default height when they do not collide', () => {
     const boxes = new Map([
       ['u:1', box(100, 20, 12, 12)],
       ['u:2', box(400, 20, 12, 12)],
@@ -112,9 +111,110 @@ describe('descent paths', () => {
       boxes,
     ).map((path) => Number(/V (\d+)/.exec(path.d)[1]));
 
-    expect(new Set(heights).size).to.equal(3);
+    expect(new Set(heights).size).to.equal(1, 'non-colliding families do not waste tracks');
     expect(heights[0]).to.equal(170 - BAR_GAP);
+  });
+
+  it('steps downwards towards the right when horizontal bars overlap', () => {
+    const boxes = new Map([
+      ['u:1', box(200, 20, 12, 12)],
+      ['p:a', box(100, 170)],
+      ['p:b', box(300, 170)],
+      ['u:2', box(400, 20, 12, 12)],
+      ['p:c', box(250, 170)],
+      ['p:d', box(450, 170)],
+    ]);
+
+    // Family 1 spans [100, 300]. Family 2 spans [250, 450]. They overlap horizontally.
+    const paths = descentPaths(
+      [edge('u:1', 'p:a'), edge('u:1', 'p:b'), edge('u:2', 'p:c'), edge('u:2', 'p:d')],
+      boxes,
+    );
+
+    const heights = paths.map((path) => Number(/V (\d+)/.exec(path.d)[1]));
+    expect(heights[0]).to.be.below(heights[1], 'the family to the right steps lower down');
+    expect(heights[0]).to.equal(170 - BAR_GAP - BAR_STEP);
+    expect(heights[1]).to.equal(170 - BAR_GAP);
+  });
+
+  it('staggers sequentially overlapping families across multiple downward tracks', () => {
+    const boxes = new Map([
+      ['u:1', box(200, 20, 12, 12)],
+      ['p:a', box(100, 170)],
+      ['p:b', box(300, 170)],
+      ['u:2', box(400, 20, 12, 12)],
+      ['p:c', box(250, 170)],
+      ['p:d', box(500, 170)],
+      ['u:3', box(600, 20, 12, 12)],
+      ['p:e', box(450, 170)],
+      ['p:f', box(700, 170)],
+    ]);
+
+    const paths = descentPaths(
+      [
+        edge('u:1', 'p:a'),
+        edge('u:1', 'p:b'),
+        edge('u:2', 'p:c'),
+        edge('u:2', 'p:d'),
+        edge('u:3', 'p:e'),
+        edge('u:3', 'p:f'),
+      ],
+      boxes,
+    );
+
+    const heights = paths.map((path) => Number(/V (\d+)/.exec(path.d)[1]));
+    expect(heights[0]).to.equal(170 - BAR_GAP - 2 * BAR_STEP);
     expect(heights[1]).to.equal(170 - BAR_GAP - BAR_STEP);
+    expect(heights[2]).to.equal(170 - BAR_GAP);
+    expect(heights[0]).to.be.below(heights[1]);
+    expect(heights[1]).to.be.below(heights[2]);
+  });
+
+  it('handles multiple generations independently without cross-generation interference', () => {
+    const boxes = new Map([
+      // Generation 1 children (top = 170), overlapping
+      ['u:1', box(200, 20, 12, 12, 'u:1')],
+      ['p:c1', box(100, 170, 76, 192, 'p:c1')],
+      ['p:c2', box(300, 170, 76, 192, 'p:c2')],
+      ['u:2', box(400, 20, 12, 12, 'u:2')],
+      ['p:c3', box(250, 170, 76, 192, 'p:c3')],
+      ['p:c4', box(450, 170, 76, 192, 'p:c4')],
+      // Generation 2 children (top = 310), overlapping
+      ['u:3', box(300, 170, 12, 12, 'u:3')],
+      ['p:g1', box(200, 310, 76, 192, 'p:g1')],
+      ['p:g2', box(400, 310, 76, 192, 'p:g2')],
+      ['u:4', box(500, 170, 12, 12, 'u:4')],
+      ['p:g3', box(350, 310, 76, 192, 'p:g3')],
+      ['p:g4', box(550, 310, 76, 192, 'p:g4')],
+    ]);
+
+    const paths = descentPaths(
+      [
+        edge('u:1', 'p:c1'),
+        edge('u:1', 'p:c2'),
+        edge('u:2', 'p:c3'),
+        edge('u:2', 'p:c4'),
+        edge('u:3', 'p:g1'),
+        edge('u:3', 'p:g2'),
+        edge('u:4', 'p:g3'),
+        edge('u:4', 'p:g4'),
+      ],
+      boxes,
+    );
+
+    // Gen 1 paths (2 overlapping families: rowMaxTrack = 1)
+    const gen1Paths = paths.filter((p) => p.children.some((c) => c.startsWith('p:c')));
+    const gen1Heights = gen1Paths.map((p) => Number(/V (\d+)/.exec(p.d)[1]));
+    expect(gen1Heights[0]).to.equal(170 - BAR_GAP - BAR_STEP);
+    expect(gen1Heights[1]).to.equal(170 - BAR_GAP);
+    expect(gen1Heights[0]).to.be.below(gen1Heights[1]);
+
+    // Gen 2 paths (2 overlapping families: rowMaxTrack = 1)
+    const gen2Paths = paths.filter((p) => p.children.some((c) => c.startsWith('p:g')));
+    const gen2Heights = gen2Paths.map((p) => Number(/V (\d+)/.exec(p.d)[1]));
+    expect(gen2Heights[0]).to.equal(310 - BAR_GAP - BAR_STEP);
+    expect(gen2Heights[1]).to.equal(310 - BAR_GAP);
+    expect(gen2Heights[0]).to.be.below(gen2Heights[1]);
   });
 
   it('puts the bar above the children, never below them', () => {
