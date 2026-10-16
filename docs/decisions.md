@@ -38,7 +38,7 @@ La preferencia se guarda en `localStorage` — es una cadena corta, que es justo
 ### GitHub Pages (MVP)
 
 - Solo aloja la aplicación. **Nunca contiene datos familiares**
-- El `base` de Vite debe ser `/ances-tree/`, no `/`, o los assets no resuelven
+- El `base` de Vite se define como relativo (`'./'`), permitiendo que resuelva tanto en GitHub Pages (`/ances-tree/`) como en servidores locales autónomos
 - Hace falta un archivo `.nojekyll` en la raíz publicada, o GitHub ignora los directorios que empiezan por `_`
 
 ### PWA desde el día uno
@@ -133,7 +133,7 @@ Motivos, por orden de importancia:
 
 | Herramienta                     | Propósito                                                                        |
 | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Vite**                        | Dev server y build, HMR rápido. `base: '/ances-tree/'`, `build.target: 'esnext'` |
+| **Vite**                        | Dev server y build, HMR rápido. `base: './'`, `build.target: 'esnext'`          |
 | **ESLint** + `eslint-plugin-wc` | Linting, con reglas específicas para Web Components                              |
 | **Prettier**                    | Formateo consistente                                                             |
 | **Web Test Runner**             | Tests en navegador real, pensado para Web Components                             |

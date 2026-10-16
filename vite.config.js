@@ -47,9 +47,9 @@ function cspPlugin() {
 }
 
 export default defineConfig({
-  // GitHub Pages serves the project under /ances-tree/. Without this, assets
-  // resolve against the domain root and never load.
-  base: '/ances-tree/',
+  // Using './' (relative path) ensures that assets resolve correctly both on
+  // GitHub Pages (/ances-tree/) and when served from any local folder (http://localhost:8080/).
+  base: './',
   plugins: [cspPlugin()],
   build: {
     target: 'esnext',

@@ -98,7 +98,7 @@ ances-tree/
 ├── test/                   # Real browser tests (Web Test Runner)
 ├── scripts/                # Stress testing and generator scripts (10,000 people)
 ├── index.html              # HTML shell with CSP injected by Vite
-└── vite.config.js          # Build configuration (base: '/ances-tree/')
+└── vite.config.js          # Build configuration (base: './')
 ```
 
 ---
