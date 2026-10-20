@@ -1,8 +1,8 @@
 /**
  * High-level operations on the project.
  *
- * The UI never talks to storage/ directly (architecture.md > Regla de
- * dependencias): everything that touches the disk goes through here.
+ * The UI never talks to storage/ directly (architecture.md > Dependency
+ * rule): everything that touches the disk goes through here.
  */
 
 import { store } from './store.js';

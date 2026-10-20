@@ -1,248 +1,246 @@
-ANCESTREE — VISIÓN Y ALCANCE
+ANCESTREE — VISION AND SCOPE
 ===========================
 
-Documentos relacionados:
-  decisions.md         Decisiones técnicas y seguridad
-  data-model.md        Modelo de datos y fechas
-  storage.md           Almacenamiento, ZIP y PWA
-  architecture.md      Capas, store y motor de maquetación
-  validation-rules.md  Reglas de validación al detalle
-  gedcom-mapping.md    Mapeo con GEDCOM
-  AGENTS.md            Instrucciones maestras para agentes e IAs
+Related documents:
+  decisions.md         Technical decisions and security
+  data-model.md        Data model and dates
+  storage.md           Storage, ZIP and PWA
+  architecture.md      Layers, store and layout engine
+  validation-rules.md  Validation rules in detail
+  gedcom-mapping.md    GEDCOM mapping
+  AGENTS.md            Master instructions for agents and AIs
 
-Este documento define QUÉ se construye y POR QUÉ. El cómo vive en los otros tres.
-
-
-QUÉ ES
-------
-Una aplicación web para construir y mantener un árbol genealógico familiar, en la
-que los datos nunca salen del equipo del usuario y el archivo resultante se puede
-pasar a un familiar como una carpeta o un ZIP.
-
-Sin cuentas. Sin backend. Sin suscripción. Sin que nadie más vea las fotos de tu
-abuela.
+This document defines WHAT is being built and WHY. The how lives in the other three.
 
 
-PRINCIPIO FUNDACIONAL
----------------------
-    Código      → público   (GitHub)
-    Datos       → privados  (disco del usuario)
-    Aplicación  → web estática
-    Backend     → ninguno
+WHAT IT IS
+----------
+A web application to build and maintain a family genealogical tree, in which the
+data never leaves the user's machine and the resulting archive can be handed to a
+relative as a folder or a ZIP.
 
-Corolario que ordena todo lo demás:
-
-    Dónde se sirve la app  ≠  dónde viven los datos
-
-La app son unos cientos de KB. Los datos viven siempre en el disco del usuario,
-se sirva la app desde donde se sirva. Cambiar el hosting no toca el modelo de
-datos.
+No accounts. No backend. No subscription. Nobody else gets to see your
+grandmother's photos.
 
 
-STACK TECNOLÓGICO
------------------
-  - HTML puro
-  - CSS puro, sin frameworks ni preprocesadores
-  - SVG para las líneas de parentesco
-  - JavaScript moderno y puro (Vanilla JS)
-  - Web Components como unidad de composición
-  - Cero dependencias de runtime
+FOUNDING PRINCIPLE
+------------------
+    Code         → public   (GitHub)
+    Data         → private  (user's disk)
+    Application  → static web
+    Backend      → none
 
-Detalle y justificación: decisions.md
+Corollary that orders everything else:
+
+    Where the app is served  ≠  where the data lives
+
+The app is a few hundred KB. The data always lives on the user's disk, wherever
+the app is served from. Changing the hosting does not touch the data model.
 
 
-DISTRIBUCIÓN
+TECHNOLOGY STACK
+----------------
+  - Plain HTML
+  - Plain CSS, no frameworks or preprocessors
+  - SVG for the kinship lines
+  - Modern, plain JavaScript (Vanilla JS)
+  - Web Components as the unit of composition
+  - Zero runtime dependencies
+
+Details and rationale: decisions.md
+
+
+DISTRIBUTION
 ------------
-  - GitHub Pages para el MVP. Solo aloja la aplicación, nunca datos familiares
-  - PWA instalable desde el día uno: tras la primera visita funciona offline al
-    100%, con icono propio y sin depender de que GitHub siga en pie
-  - Abrir el HTML con doble clic (file://) NO está soportado, y no hace falta:
-    los datos son locales igualmente. El porqué está en decisions.md
+  - GitHub Pages for the MVP. It only hosts the application, never family data
+  - Installable PWA from day one: after the first visit it works 100% offline,
+    with its own icon and without depending on GitHub staying up
+  - Opening the HTML with a double click (file://) is NOT supported, and does not
+    need to be: the data is local anyway. The reason is in decisions.md
 
 
-ALMACENAMIENTO
---------------
-El proyecto entero es UNA CARPETA DEL DISCO, gestionada con la File System
-Access API. Sin cuota de navegador, sin desalojo, sin límite de fotos.
+STORAGE
+-------
+The entire project is ONE FOLDER ON DISK, managed with the File System Access
+API. No browser quota, no eviction, no photo limit.
 
-IndexedDB solo guarda los handles de carpeta, los proyectos recientes y las
-preferencias de interfaz. Nunca datos familiares.
+IndexedDB only stores folder handles, recent projects and interface
+preferences. Never family data.
 
-DOS MODOS. En Chromium de escritorio (Chrome, Edge, Opera, Brave, Vivaldi) el
-archivo es una carpeta que elige el usuario, sin cuota ni desalojo. En cualquier
-otro navegador — Firefox, Safari y todos los móviles — vive en el almacenamiento
-del propio navegador, que sí tiene cuota, sí se puede desalojar y no se ve en un
-gestor de ficheros. Funciona todo igual, pero la aplicación lo dice: insignia
-permanente, aviso la primera vez, y el ZIP como la copia que de verdad es tuya.
+TWO MODES. On desktop Chromium (Chrome, Edge, Opera, Brave, Vivaldi) the archive
+is a folder chosen by the user, with no quota or eviction. In any other browser —
+Firefox, Safari and all mobile ones — it lives in the browser's own storage, which
+does have a quota, can be evicted and is not visible in a file manager.
+Everything works the same, but the application says so: permanent badge, notice
+the first time, and the ZIP as the copy that is truly yours.
 
-El modo de disco gana siempre que esté disponible. No son equivalentes y no se
-presentan como si lo fueran. Si no hay ninguno de los dos, la app no arranca:
-muestra una pantalla de requisitos.
+Disk mode always wins when it is available. They are not equivalent and are not
+presented as if they were. If neither is available, the app does not start: it
+shows a requirements screen.
 
-La carpeta de proyecto y el ZIP tienen EXACTAMENTE la misma estructura: comprimir
-la carpeta con el explorador de archivos produce un ZIP válido, y viceversa.
+The project folder and the ZIP have EXACTLY the same structure: compressing the
+folder with the file explorer produces a valid ZIP, and vice versa.
 
-Estructura completa, sharding por hash, fusión al importar y límites: storage.md
+Full structure, hash sharding, merge on import and limits: storage.md
 
-    FamiliaApellido1/
-    ├─ family.json     Grafo + ajustes propios de la app
-    ├─ manifest.json   Metadatos e integridad
-    ├─ family.ged      GEDCOM (fase 2)
+    FamilySurname1/
+    ├─ family.json     Graph + app-specific settings
+    ├─ manifest.json   Metadata and integrity
+    ├─ family.ged      GEDCOM (phase 2)
     ├─ photos/
     ├─ documents/
     └─ backups/
 
 
-FORMATOS
---------
-  Datos              JSON (fuente de verdad)
-  Interoperabilidad  GEDCOM 5.5.1 / 7.0 (fase 2)
-  Fotos              JPEG, PNG
-  Documentos         PDF (se almacenan y descargan; sin previsualización en el MVP)
+FORMATS
+-------
+  Data              JSON (source of truth)
+  Interoperability  GEDCOM 5.5.1 / 7.0 (phase 2)
+  Photos            JPEG, PNG
+  Documents         PDF (stored and downloaded; no preview in the MVP)
 
-El JSON es el formato nativo y el que manda. El GEDCOM es una proyección para
-intercambiar con otras aplicaciones, y no todo lo que guarda la app cabe en él.
+JSON is the native format and the one that rules. GEDCOM is a projection for
+exchanging with other applications, and not everything the app stores fits in it.
 
 
-FLUJO DE USO
-------------
-    Abrir la app (web o instalada)
+USAGE FLOW
+----------
+    Open the app (web or installed)
             ↓
-    Elegir carpeta de proyecto en el disco (se recuerda entre sesiones)
+    Choose a project folder on disk (remembered between sessions)
             ↓
-    Trabajar. Guardado automático
+    Work. Automatic saving
             ↓
-    Exportar ZIP, o simplemente comprimir la carpeta
+    Export ZIP, or simply compress the folder
             ↓
-    Un familiar lo abre en su equipo y sigue trabajando
+    A relative opens it on their machine and keeps working
 
 
-LENGUAJE DE TRABAJO
--------------------
-  - Código, identificadores, campos del modelo, commits → inglés
-  - Documentación de diseño → español
-  - UI → inglés en el MVP, sin strings hardcodeados en el markup para no
-    bloquear la i18n futura
+WORKING LANGUAGE
+----------------
+  - Code, identifiers, model fields, commits and design documentation → English
+  - UI → English and Spanish through i18n dictionaries, with no hardcoded
+    strings in the markup
 
 
-MODELO DE DATOS (resumen)
--------------------------
-El modelo completo, con tipos, enums y validaciones, está en data-model.md.
-Lo esencial:
+DATA MODEL (summary)
+--------------------
+The full model, with types, enums and validations, is in data-model.md.
+The essentials:
 
   Person        id, firstName, lastName, sex, birth, death, isPlaceholder, ...
   Union         id, partner1Id, partner2Id, type, startDate, endDate
   ParentChild   id, parentId, childId, type, unionId, certainty
   MediaObject   id, kind, path, hash, links, ...
 
-Una decisión que conviene entender aquí, porque cambia la forma del árbol:
-ParentChild es UNA ARISTA POR PROGENITOR, no una fila por pareja. Es lo único que
-permite expresar un hijo con padre biológico y madre adoptiva, que es un caso
-explícitamente requerido.
+A decision worth understanding here, because it changes the shape of the tree:
+ParentChild is ONE EDGE PER PARENT, not one row per couple. It is the only way
+to express a child with a biological father and an adoptive mother, which is an
+explicitly required case.
 
 
-REGLAS DEL DOMINIO
-------------------
-Todas están detalladas, con id y severidad, en data-model.md. El resumen:
+DOMAIN RULES
+------------
+All of them are detailed, with id and severity, in data-model.md. The summary:
 
-  - Una persona puede formar N uniones a lo largo de su vida
-  - Un hijo puede tener progenitores biológicos y, además, adoptivos o tutores
-    legales, distinguiendo el tipo de vínculo para no mezclar líneas genéticas
-    con familiares
-  - Hermanos completos comparten los dos progenitores; medios hermanos, uno solo
-  - Cuando un progenitor no se conoce, se puede crear una PERSONA FANTASMA
-    (isPlaceholder) para mantener la estructura del árbol. Se crean a demanda,
-    NUNCA en cascada: aplicar "toda persona tiene dos progenitores" de forma
-    literal produciría una regresión infinita
-  - Una persona no puede ser progenitor de sí misma, ni un ancestro descendiente
-    de sus propios descendientes (DFS antes de confirmar cualquier vínculo)
-  - Se permiten uniones entre parientes: son un hecho histórico frecuente. Si hay
-    descendencia, se avisa del ancestro común. El cálculo del coeficiente de
-    consanguinidad queda fuera del MVP
+  - A person can form N unions over their lifetime
+  - A child can have biological parents and, in addition, adoptive parents or
+    legal guardians, distinguishing the type of bond so as not to mix genetic
+    lines with relatives
+  - Full siblings share both parents; half siblings, only one
+  - When a parent is unknown, a PLACEHOLDER PERSON (isPlaceholder) can be created
+    to keep the tree structure. They are created on demand, NEVER in cascade:
+    applying "every person has two parents" literally would produce an infinite
+    regression
+  - A person cannot be their own parent, nor an ancestor a descendant of their
+    own descendants (DFS before confirming any link)
+  - Unions between relatives are allowed: they are a frequent historical fact. If
+    there are children, the common ancestor is flagged. Computing the inbreeding
+    coefficient is outside the MVP
 
-Fechas: la genealogía real está llena de fechas parciales ("mayo de 1912",
-"hacia 1885"). Se guarda el texto original como fuente de verdad más un intervalo
-derivado para ordenar y validar, siguiendo los modificadores estándar de GEDCOM
-(ABT, EST, CAL, BEF, AFT, BET...AND). Desconocido = vacío.
+Dates: real genealogy is full of partial dates ("May 1912", "about 1885"). The
+original text is stored as the source of truth plus a derived interval for
+sorting and validating, following the standard GEDCOM modifiers (ABT, EST, CAL,
+BEF, AFT, BET...AND). Unknown = empty.
 
-Severidad: casi todo es ADVERTENCIA, no error. Solo se bloquea lo estructuralmente
-imposible. Un árbol que se niega a guardar datos incómodos es inservible: el
-usuario documenta lo que encuentra, no lo que le gustaría encontrar.
-
-
-ARQUITECTURA DE UI Y MAQUETACIÓN DEL ÁRBOL
-------------------------------------------
-  - Estructura por niveles: las personas se maquetan en filas horizontales según
-    su rango generacional (N, N+1, N-1) respecto a la persona focal (nivel 0),
-    con las generaciones más antiguas arriba y las más recientes abajo
-
-  - Normalización de desfases: los dos miembros de una unión se fuerzan a la misma
-    fila visual, sea cual sea su diferencia de edad
-
-  - Nodos sintéticos de unión: las uniones no conectan las tarjetas entre sí, sino
-    a un nodo intermedio del que sale una única línea vertical descendente que se
-    ramifica horizontalmente hacia los hijos
-
-  - Placeholders de maquetación: el motor inserta elementos vacíos e invisibles
-    entre ramas dentro de cada fila para evitar solapamientos y mantener la
-    simetría. (Nada que ver con las personas fantasma del modelo: esto es puramente
-    visual)
-
-  - Renderizado híbrido HTML + SVG:
-      · Tarjetas de persona y nodos de unión → elementos HTML nativos con
-        flexbox/grid, por CSS, accesibilidad y eventos de click
-      · Líneas de parentesco → una capa <svg> absoluta a pantalla completa con
-        rutas ortogonales <path>
-
-  - Navegación por focalización: el renderizado se limita a un número máximo de
-    generaciones arriba y abajo desde la persona focal. Al hacer clic en cualquier
-    nodo, este pasa a ser el foco y el árbol se recalcula entero. Es lo que evita
-    que un árbol grande hunda el rendimiento
-
-  - Recálculo de líneas: las coordenadas SVG se recalculan con
-    getBoundingClientRect() tras cualquier modificación del DOM y en el evento
-    resize (con debounce o requestAnimationFrame). El trazado debe invocarse
-    estrictamente dentro de un requestAnimationFrame() inmediatamente posterior a
-    la inserción o actualización de tarjetas en el DOM
-
-  - Revisar la View Transitions API nativa para un acabado tipo SPA
+Severity: almost everything is a WARNING, not an error. Only what is
+structurally impossible is blocked. A tree that refuses to save uncomfortable
+data is useless: the user documents what they find, not what they would like to
+find.
 
 
-ESTADO
+UI ARCHITECTURE AND TREE LAYOUT
+-------------------------------
+  - Level-based structure: people are laid out in horizontal rows according to
+    their generational rank (N, N+1, N-1) relative to the focal person (level 0),
+    with the oldest generations at the top and the most recent at the bottom
+
+  - Offset normalization: both members of a union are forced onto the same visual
+    row, regardless of their age difference
+
+  - Synthetic union nodes: unions do not connect the cards to each other, but to
+    an intermediate node from which a single descending vertical line leaves and
+    branches horizontally towards the children
+
+  - Layout placeholders: the engine inserts empty, invisible elements between
+    branches within each row to avoid overlaps and keep symmetry. (Nothing to do
+    with the placeholder persons of the model: this is purely visual)
+
+  - Hybrid HTML + SVG rendering:
+      · Person cards and union nodes → native HTML elements with flexbox/grid,
+        for CSS, accessibility and click events
+      · Kinship lines → a full-screen absolute <svg> layer with orthogonal
+        <path> routes
+
+  - Focus navigation: rendering is limited to a maximum number of generations
+    above and below the focal person. Clicking any node makes it the focus and
+    the whole tree is recalculated. This is what keeps a large tree from sinking
+    performance
+
+  - Line recalculation: SVG coordinates are recalculated with
+    getBoundingClientRect() after any DOM modification and on the resize event
+    (with debounce or requestAnimationFrame). Drawing must be invoked strictly
+    inside a requestAnimationFrame() immediately after the cards are inserted or
+    updated in the DOM
+
+  - Review the native View Transitions API for an SPA-like finish
+
+
+STATUS
 ------
-Hecho:
-  - Modelo completo: personas (dos apellidos), uniones, vínculos
-    progenitor-hijo, personas fantasma
-  - Fechas genealógicas con modificadores y validación por intervalos
-  - Motor de maquetación con coordenadas propias: parejas centradas sobre sus
-    hijos, ancestros centrados sobre la pareja
-  - Árbol navegable con persona focal, buscador, botón atrás, resaltado de
-    parentesco fijable
-  - Fotos con limpieza de EXIF, deduplicación por hash y retratos
-  - Guardado automático, copias de seguridad rotativas, migraciones de esquema
-  - Export e import de ZIP (formato propio, sin librerías)
-  - Export de GEDCOM 5.5.1
-  - PWA instalable, accesibilidad AA verificada por tests
+Done:
+  - Complete model: people (two surnames), unions, parent-child links,
+    placeholder persons
+  - Genealogical dates with modifiers and interval-based validation
+  - Layout engine with own coordinates: couples centered over their children,
+    ancestors centered over the couple
+  - Navigable tree with focal person, search, back button, pinnable kinship
+    highlighting
+  - Photos with EXIF stripping, hash deduplication and portraits
+  - Automatic saving, rotating backups, schema migrations
+  - ZIP export and import (own format, no libraries)
+  - GEDCOM 5.5.1 export
+  - Installable PWA, AA accessibility verified by tests
 
-  - Import y export de GEDCOM 5.5.1, con round-trip verificado
-  - Nacionalidad con bandera
-  - Panel de revisión de todo el archivo, filtrable y navegable
-  - Iconos PNG para que la PWA sea instalable
+  - GEDCOM 5.5.1 import and export, with verified round-trip
+  - Nationality with flag
+  - Review panel for the whole archive, filterable and navigable
+  - PNG icons so the PWA is installable
 
-Pendiente, por orden de valor:
-  - Documentos PDF: modelo listo, sin interfaz
-  - Fuentes y citas (de dónde sale cada dato)
-  - Cifrado opcional con passphrase
-  - Aviso al usuario cuando hay una versión nueva de la app
-  - Corpus de GEDCOM de otras aplicaciones para probar el import
+Pending, in order of value:
+  - PDF documents: model ready, no interface
+  - Sources and citations (where each piece of data comes from)
+  - Optional passphrase encryption
+  - Notify the user when there is a new version of the app
+  - Corpus of GEDCOM files from other applications to test the import
 
-Más adelante:
-  - Coeficiente de consanguinidad
-  - Detección de duplicados al importar
-  - Place como entidad con jerarquía y coordenadas
-  - Eventos arbitrarios más allá de nacimiento y defunción
-  - i18n
+Later:
+  - Inbreeding coefficient
+  - Duplicate detection on import
+  - Place as an entity with hierarchy and coordinates
+  - Arbitrary events beyond birth and death
+  - Additional UI languages beyond English and Spanish
 
-Orden de construcción: primero todo sobre JSON. El GEDCOM viene después, pero la
-tabla de mapeo se escribe antes de cerrar el modelo, porque condiciona qué campos
-existen.
+Build order: first everything on JSON. GEDCOM comes afterwards, but the mapping
+table is written before closing the model, because it determines which fields
+exist.

@@ -1,53 +1,53 @@
-# Modelo de datos
+# Data model
 
-> Documentos relacionados: [decisions.md](decisions.md) (decisiones técnicas) · [storage.md](storage.md) (dónde vive esto físicamente) · [validation-rules.md](validation-rules.md) (reglas al detalle) · [gedcom-mapping.md](gedcom-mapping.md) (interoperabilidad) · [architecture.md](architecture.md) · [vision.md](vision.md)
+> Related documents: [decisions.md](decisions.md) (technical decisions) · [storage.md](storage.md) (where this physically lives) · [validation-rules.md](validation-rules.md) (detailed rules) · [gedcom-mapping.md](gedcom-mapping.md) (interoperability) · [architecture.md](architecture.md) · [vision.md](vision.md)
 
-Este documento es **el contrato de datos del proyecto**. Todo lo demás deriva de aquí: el motor de maquetación, las validaciones, el export a ZIP y el futuro mapeo a GEDCOM.
+This document is **the project's data contract**. Everything else derives from it: the layout engine, validations, ZIP export, and the future GEDCOM mapping.
 
-Los identificadores y los valores de enumeración van en **inglés**. Las claves JSON son `camelCase`.
-
----
-
-## Principios
-
-1. **Una arista por vínculo.** Nada de relaciones que agrupen dos progenitores bajo un único tipo: cada vínculo progenitor↔hijo es una fila propia con su propio tipo.
-2. **El `raw` de las fechas es la fuente de verdad.** Los campos derivados (`earliest`, `latest`) se recalculan; nunca se editan a mano.
-3. **Casi todo es advertencia, no error.** La genealogía real está llena de datos contradictorios. Solo se bloquea lo estructuralmente imposible.
-4. **Los IDs son opacos.** `crypto.randomUUID()`, sin significado semántico, nunca reutilizados.
-5. **Los binarios no viven en el JSON.** Solo se referencian por ruta relativa y hash.
+Identifiers and enumeration values are in **English**. JSON keys are `camelCase`.
 
 ---
 
-## Versionado del esquema
+## Principles
+
+1. **One edge per link.** No relationships that group two parents under a single type: each parent↔child link is its own row with its own type.
+2. **The `raw` of dates is the source of truth.** Derived fields (`earliest`, `latest`) are recalculated; they are never edited by hand.
+3. **Almost everything is a warning, not an error.** Real genealogy is full of contradictory data. Only what is structurally impossible is blocked.
+4. **IDs are opaque.** `crypto.randomUUID()`, with no semantic meaning, never reused.
+5. **Binaries do not live in the JSON.** They are only referenced by relative path and hash.
+
+---
+
+## Schema versioning
 
 ```json
 { "schemaVersion": 2 }
 ```
 
-- `schemaVersion` es **obligatorio** en `family.json` desde la primera versión
-- Al abrir: si es menor que la actual, se aplican migraciones en cadena (`1→2→3`) antes de cargar. Si es mayor, **se rechaza el archivo** con un mensaje claro ("este proyecto se creó con una versión más reciente")
-- Cada migración vive en su propio módulo `migrations/vN-to-vM.js` y es una función pura `(data) => data`
-- Antes de sobrescribir se guarda copia del `family.json` anterior en `backups/`
+- `schemaVersion` is **mandatory** in `family.json` from the first version
+- On open: if it is lower than the current one, migrations are applied in a chain (`1→2→3`) before loading. If it is higher, **the file is rejected** with a clear message ("this project was created with a newer version")
+- Each migration lives in its own module `migrations/vN-to-vM.js` and is a pure function `(data) => data`
+- Before overwriting, a copy of the previous `family.json` is saved in `backups/`
 
-Este es el contrato con el usuario a diez años vista: un archivo exportado hoy debe poder abrirse en cualquier versión futura.
+This is the contract with the user ten years down the line: a file exported today must be openable in any future version.
 
-### Todavía no hay migraciones, a propósito
+### There are no migrations yet, on purpose
 
-El esquema **sigue en la versión 1 y cambia en el sitio** mientras se está diseñando. Escribir una migración por campo mientras la forma se mueve es contabilidad para versiones que nadie llegó a tener.
+The schema **remains at version 1 and changes in place** while it is being designed. Writing a migration for every field while the shape is still moving is bookkeeping for versions that nobody ever had.
 
-Funciona porque **todos los campos hasta ahora son aditivos y con valor por defecto seguro**, y `normalizeProject` los rellena: un archivo escrito por una compilación anterior sigue abriéndose. Hay un test que lo comprueba y que es lo que mantiene viva esa propiedad.
+It works because **all fields so far are additive and have a safe default value**, and `normalizeProject` fills them in: a file written by an earlier build still opens. A test verifies this, and it is what keeps that property alive.
 
-La cadena de migraciones —y el rechazo a abrir un archivo de una versión posterior— llegan **cuando se publique la v1**, que es el momento en que un número de versión empieza a significar algo.
-
----
-
-Los nombres de país no se almacenan: salen de `Intl.DisplayNames`, que ya trae el navegador, así que la lista se lee en el idioma del usuario sin tabla que mantener. La bandera se compone con símbolos indicadores regionales — **Windows los dibuja como las dos letras del código en lugar de una bandera**, y es una decisión suya; ambas cosas se leen, y las dos son mejores que empaquetar mapas de bits de 249 países.
-
-**`v1-to-v2` no intenta partir el apellido existente.** `"De la Fuente"` y `"García Pérez"` son indistinguibles para cualquier heurística que corte por el espacio, y equivocarse corrompería en silencio el registro de una familia. Lo que había se conserva íntegro como primer apellido y el segundo queda vacío para que lo complete el usuario.
+The migration chain —and the refusal to open a file from a later version— arrive **when v1 is published**, which is the moment a version number starts to mean something.
 
 ---
 
-## Estructura de `family.json`
+Country names are not stored: they come from `Intl.DisplayNames`, which the browser already provides, so the list is read in the user's language with no table to maintain. The flag is composed with regional indicator symbols — **Windows draws them as the two letters of the code instead of a flag**, and that is its own decision; both are readable, and both are better than bundling bitmaps for 249 countries.
+
+**`v1-to-v2` does not attempt to split the existing surname.** `"De la Fuente"` and `"García Pérez"` are indistinguishable to any heuristic that splits on the space, and getting it wrong would silently corrupt a family's record. What was there is kept intact as the first surname and the second is left empty for the user to fill in.
+
+---
+
+## Structure of `family.json`
 
 ```json
 {
@@ -72,35 +72,35 @@ Los nombres de país no se almacenan: salen de `Intl.DisplayNames`, que ya trae 
 }
 ```
 
-Las cuatro colecciones son **arrays planos**. Toda la topología del árbol se reconstruye en memoria al cargar; el JSON no contiene estructuras anidadas ni referencias circulares.
+The four collections are **flat arrays**. The entire tree topology is rebuilt in memory on load; the JSON contains no nested structures or circular references.
 
 ---
 
-## Entidades
+## Entities
 
 ### `Person`
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
 | `id` | `string` (UUID) | |
-| `firstName` | `string` | Puede ser `""` si se desconoce |
-| `lastName` | `string` | **Primer apellido** (el del padre). Puede ser `""` |
-| `secondLastName` | `string` | **Segundo apellido** (el de la madre). Puede ser `""` |
-| `alsoKnownAs` | `string[]` | Apodos, nombres de casada, variantes ortográficas |
-| `sex` | `"M" \| "F" \| "U" \| "X"` | Los valores de GEDCOM `SEX`. `U` = desconocido |
-| `nationality` | `string` | ISO 3166-1 alfa-2 (`"ES"`), o `""`. Un código no reconocido se descarta al cargar |
+| `firstName` | `string` | May be `""` if unknown |
+| `lastName` | `string` | **First surname** (the father's). May be `""` |
+| `secondLastName` | `string` | **Second surname** (the mother's). May be `""` |
+| `alsoKnownAs` | `string[]` | Nicknames, married names, spelling variants |
+| `sex` | `"M" \| "F" \| "U" \| "X"` | The GEDCOM `SEX` values. `U` = unknown |
+| `nationality` | `string` | ISO 3166-1 alpha-2 (`"ES"`), or `""`. An unrecognized code is discarded on load |
 | `birth` | `LifeEvent \| null` | |
 | `death` | `LifeEvent \| null` | |
-| `isPlaceholder` | `boolean` | Persona fantasma (ver más abajo) |
-| `notes` | `string` | Texto libre |
+| `isPlaceholder` | `boolean` | Ghost person (see below) |
+| `notes` | `string` | Free text |
 | `createdAt` | `string` (ISO 8601) | |
 | `updatedAt` | `string` (ISO 8601) | |
 
-**Sobre los dos apellidos**: en España una persona lleva el primer apellido del padre y el primer apellido de la madre, y **saber cuál es cuál es lo que permite seguir una línea**. Guardar `"García Pérez"` como una sola cadena tira esa información: deja de poder distinguirse un apellido compuesto (`"De la Fuente"`) de dos apellidos, y deja de poder saberse cuál hereda un hijo.
+**On the two surnames**: in Spain a person carries the father's first surname and the mother's first surname, and **knowing which is which is what makes it possible to follow a line**. Storing `"García Pérez"` as a single string throws that information away: it becomes impossible to tell a compound surname (`"De la Fuente"`) from two surnames, and impossible to know which one a child inherits.
 
-`displayName()` los une en el orden en que se dicen: *Ramón García Pérez*.
+`displayName()` joins them in the order they are spoken: *Ramón García Pérez*.
 
-**Sobre `sex`**: se usa el enum de GEDCOM y no un campo libre, para que la interoperabilidad no requiera traducción. Es un dato biológico de registro, no una declaración de identidad; si en el futuro hace falta un campo de identidad de género separado, se añade sin tocar este.
+**On `sex`**: the GEDCOM enum is used rather than a free field, so that interoperability requires no translation. It is a biological record datum, not a statement of identity; if a separate gender identity field is needed in the future, it is added without touching this one.
 
 ### `LifeEvent`
 
@@ -111,79 +111,79 @@ Las cuatro colecciones son **arrays planos**. Toda la topología del árbol se r
 }
 ```
 
-`place` es **un string libre en la v1**, igual que la etiqueta `PLAC` de GEDCOM. Convertirlo en una entidad `Place` con jerarquía y coordenadas es una migración `v1→v2` limpia y no merece la pena adelantarla.
+`place` is **a free string in v1**, like the GEDCOM `PLAC` tag. Turning it into a `Place` entity with hierarchy and coordinates is a clean `v1→v2` migration and is not worth bringing forward.
 
 ### `Union`
 
-Una unión entre dos personas. Es lo que en la visión original se llamaba `Relationship`.
+A union between two people. It is what the original vision called `Relationship`.
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
 | `id` | `string` (UUID) | |
 | `partner1Id` | `string` (Person.id) | |
 | `partner2Id` | `string` (Person.id) | |
 | `type` | `"MARRIED" \| "PARTNERS" \| "CASUAL" \| "UNKNOWN"` | |
-| `startDate` | `GenealogicalDate \| null` | Boda o inicio de la relación |
-| `endDate` | `GenealogicalDate \| null` | Divorcio o separación |
+| `startDate` | `GenealogicalDate \| null` | Wedding or start of the relationship |
+| `endDate` | `GenealogicalDate \| null` | Divorce or separation |
 | `notes` | `string` | |
 
-- El orden `partner1`/`partner2` **no tiene significado semántico**; existe solo para dar estabilidad a la clave. La UI no debe asumir roles a partir de él
-- Una persona puede formar **N uniones** a lo largo de su vida
-- Una unión puede existir **sin hijos** (es información genealógica válida)
+- The `partner1`/`partner2` order **has no semantic meaning**; it exists only to give the key stability. The UI must not assume roles from it
+- A person can form **N unions** over their lifetime
+- A union can exist **without children** (it is valid genealogical information)
 
 ### `ParentChild`
 
-**El cambio más importante respecto al diseño original.** Una fila por cada vínculo progenitor→hijo, no una fila por pareja.
+**The most important change from the original design.** One row per parent→child link, not one row per couple.
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
 | `id` | `string` (UUID) | |
 | `parentId` | `string` (Person.id) | |
 | `childId` | `string` (Person.id) | |
 | `type` | `"BIOLOGICAL" \| "ADOPTED" \| "FOSTER" \| "STEP" \| "GUARDIAN"` | |
-| `unionId` | `string \| null` | Unión en cuyo contexto ocurre el vínculo |
-| `certainty` | `"CONFIRMED" \| "PROBABLE" \| "DISPUTED"` | Por defecto `CONFIRMED` |
+| `unionId` | `string \| null` | Union in whose context the link occurs |
+| `certainty` | `"CONFIRMED" \| "PROBABLE" \| "DISPUTED"` | Defaults to `CONFIRMED` |
 
-**Por qué una arista por progenitor.** El diseño anterior (`parent1Id`, `parent2Id`, `type` único) no podía expresar el caso, explícitamente requerido, de un hijo con **padre biológico y madre adoptiva**: el `type` era compartido por ambos. Con una arista por vínculo, cada progenitor lleva su propio tipo y su propia certeza. Además permite de forma natural:
+**Why one edge per parent.** The previous design (`parent1Id`, `parent2Id`, a single `type`) could not express the explicitly required case of a child with a **biological father and an adoptive mother**: the `type` was shared by both. With one edge per link, each parent carries their own type and their own certainty. It also naturally allows:
 
-- Un hijo con un solo progenitor conocido (una sola fila)
-- Un hijo con cuatro progenitores (dos biológicos + dos adoptivos)
-- Distinguir líneas genéticas de líneas legales con una simple consulta por `type`
+- A child with only one known parent (a single row)
+- A child with four parents (two biological + two adoptive)
+- Distinguishing genetic lines from legal lines with a simple query by `type`
 
-**Para qué sirve `unionId`.** Es lo que permite resolver la regla de hermanos. Dos vínculos que comparten `unionId` describen a los dos miembros de la misma pareja como progenitores del mismo hijo. Es opcional: un vínculo puede existir sin unión asociada (progenitor único, o pareja desconocida).
+**What `unionId` is for.** It is what makes it possible to resolve the sibling rule. Two links that share a `unionId` describe the two members of the same couple as parents of the same child. It is optional: a link can exist without an associated union (single parent, or unknown couple).
 
 ### `MediaObject`
 
-| Campo | Tipo | Notas |
+| Field | Type | Notes |
 |---|---|---|
 | `id` | `string` (UUID) | |
 | `kind` | `"PHOTO" \| "DOCUMENT"` | |
-| `path` | `string` | Ruta relativa dentro del proyecto, p. ej. `photos/a3/a3f2...jpg` |
-| `hash` | `string` | SHA-256 en hex del contenido. Es la identidad real del archivo |
-| `mime` | `string` | Validado por magic bytes, no por extensión |
+| `path` | `string` | Relative path within the project, e.g. `photos/a3/a3f2...jpg` |
+| `hash` | `string` | SHA-256 in hex of the content. It is the file's real identity |
+| `mime` | `string` | Validated by magic bytes, not by extension |
 | `bytes` | `number` | |
-| `width`, `height` | `number \| null` | Solo para `PHOTO` |
+| `width`, `height` | `number \| null` | Only for `PHOTO` |
 | `caption` | `string` | |
-| `takenDate` | `GenealogicalDate \| null` | Extraído del EXIF antes de limpiarlo |
-| `links` | `MediaLink[]` | A qué entidades está asociado |
-| `exifStripped` | `boolean` | Trazabilidad de qué se hizo al importar |
+| `takenDate` | `GenealogicalDate \| null` | Extracted from EXIF before stripping it |
+| `links` | `MediaLink[]` | Which entities it is associated with |
+| `exifStripped` | `boolean` | Traceability of what was done on import |
 
 ```json
 // MediaLink
 { "targetType": "person" | "union", "targetId": "uuid", "role": "PORTRAIT" | "ATTACHMENT" }
 ```
 
-- Un mismo archivo puede estar vinculado a varias personas (una foto de grupo)
-- El nombre en disco deriva del **hash**, no del nombre original: elimina colisiones, deduplica automáticamente y neutraliza los nombres de archivo maliciosos. El nombre original, si se quiere conservar, va en `caption`
-- La estructura de carpetas y el sharding por prefijo de hash están en [storage.md](storage.md)
+- The same file can be linked to several people (a group photo)
+- The name on disk derives from the **hash**, not from the original name: it eliminates collisions, deduplicates automatically, and neutralizes malicious file names. The original name, if you want to keep it, goes in `caption`
+- The folder structure and the hash-prefix sharding are in [storage.md](storage.md)
 
 ---
 
-## Fechas genealógicas
+## Genealogical dates
 
-El problema: la genealogía real está llena de fechas parciales o aproximadas — *"mayo de 1912"*, *"1888"*, *"hacia 1885"*, *"entre 1900 y 1905"*. Un `Date` de JavaScript no puede representar nada de eso.
+The problem: real genealogy is full of partial or approximate dates — *"May 1912"*, *"1888"*, *"around 1885"*, *"between 1900 and 1905"*. A JavaScript `Date` cannot represent any of that.
 
-**Solución: `raw` como fuente de verdad, más un intervalo derivado para ordenar y validar.**
+**Solution: `raw` as the source of truth, plus a derived interval for sorting and validating.**
 
 ```json
 {
@@ -195,134 +195,134 @@ El problema: la genealogía real está llena de fechas parciales o aproximadas �
 }
 ```
 
-| Campo | Papel |
+| Field | Role |
 |---|---|
-| `raw` | Lo que el usuario escribió o lo que venía en el GEDCOM. **Nunca se pierde ni se reescribe** |
-| `kind` | Modificador reconocido al parsear `raw` |
-| `earliest` / `latest` | Intervalo `[earliest, latest]` derivado. `null` en un extremo = sin cota por ese lado |
+| `raw` | What the user typed or what came in the GEDCOM. **Never lost or rewritten** |
+| `kind` | Modifier recognized when parsing `raw` |
+| `earliest` / `latest` | Derived interval `[earliest, latest]`. `null` at an end = unbounded on that side |
 | `precision` | `"DAY" \| "MONTH" \| "YEAR" \| "NONE"` |
 
-**Valores de `kind`**, alineados con los modificadores estándar de GEDCOM:
+**`kind` values**, aligned with the standard GEDCOM modifiers:
 
-| `kind` | GEDCOM | Ejemplo `raw` | Intervalo derivado |
+| `kind` | GEDCOM | `raw` example | Derived interval |
 |---|---|---|---|
 | `EXACT` | — | `12 MAY 1912` | `[1912-05-12, 1912-05-12]` |
 | `PARTIAL` | — | `MAY 1912` | `[1912-05-01, 1912-05-31]` |
-| `ABOUT` | `ABT` | `ABT 1885` | `[1880-01-01, 1890-12-31]` (±5 años) |
-| `ESTIMATED` | `EST` | `EST 1885` | `[1875-01-01, 1895-12-31]` (±10 años) |
-| `CALCULATED` | `CAL` | `CAL 1885` | Como `EXACT`, marcado como derivado |
+| `ABOUT` | `ABT` | `ABT 1885` | `[1880-01-01, 1890-12-31]` (±5 years) |
+| `ESTIMATED` | `EST` | `EST 1885` | `[1875-01-01, 1895-12-31]` (±10 years) |
+| `CALCULATED` | `CAL` | `CAL 1885` | Like `EXACT`, marked as derived |
 | `BEFORE` | `BEF` | `BEF 1900` | `[null, 1899-12-31]` |
 | `AFTER` | `AFT` | `AFT 1900` | `[1901-01-01, null]` |
 | `BETWEEN` | `BET…AND` | `BET 1900 AND 1905` | `[1900-01-01, 1905-12-31]` |
 | `UNKNOWN` | — | `""` | `[null, null]` |
 
-Los márgenes de `ABOUT` y `ESTIMATED` son una convención del proyecto, configurable en un único sitio.
+The `ABOUT` and `ESTIMATED` margins are a project convention, configurable in a single place.
 
-**Desconocido = vacío.** `raw: ""` con `kind: "UNKNOWN"`. Un campo de fecha nunca es `undefined`; o es `null` el evento entero, o la fecha es explícitamente desconocida.
+**Unknown = empty.** `raw: ""` with `kind: "UNKNOWN"`. A date field is never `undefined`; either the whole event is `null`, or the date is explicitly unknown.
 
-### Comparación de fechas
+### Date comparison
 
-Comparar dos fechas genealógicas no devuelve un booleano, sino uno de tres estados. **Toda validación temporal usa esta función**, nunca `<` directamente:
+Comparing two genealogical dates does not return a boolean, but one of three states. **All temporal validation uses this function**, never `<` directly:
 
 ```js
-/** @returns {'CERTAIN'|'POSSIBLE'|'IMPOSSIBLE'} — ¿puede A ser anterior a B? */
+/** @returns {'CERTAIN'|'POSSIBLE'|'IMPOSSIBLE'} — can A be before B? */
 function isBefore(a, b) {
   if (a.latest !== null && b.earliest !== null && a.latest < b.earliest) return 'CERTAIN';
   if (a.earliest !== null && b.latest !== null && a.earliest > b.latest) return 'IMPOSSIBLE';
-  return 'POSSIBLE'; // los intervalos se solapan, o falta información
+  return 'POSSIBLE'; // the intervals overlap, or information is missing
 }
 ```
 
-La regla que conecta esto con las validaciones: **solo `IMPOSSIBLE` puede producir un error; el solapamiento nunca lo hace.**
+The rule that connects this with the validations: **only `IMPOSSIBLE` can produce an error; overlap never does.**
 
 ---
 
-## Personas fantasma (placeholders)
+## Ghost persons (placeholders)
 
-La regla conceptual es que toda persona tiene dos progenitores. Aplicada literalmente produciría una regresión infinita: cada fantasma necesitaría a su vez dos padres.
+The conceptual rule is that every person has two parents. Applied literally it would produce an infinite regress: each ghost would in turn need two parents.
 
-**Regla operativa:**
+**Operational rule:**
 
-- Los fantasmas se crean **a demanda**, nunca en cascada. Solo cuando el usuario necesita expresar "aquí había una madre, pero no sé quién era" para completar una unión o una línea
-- `isPlaceholder: true`, sin nombre ni fechas obligatorios
-- **Nunca generan sus propios progenitores automáticamente**
-- La UI los dibuja diferenciados (borde discontinuo, sin foto) y permite "materializarlos": convertirlos en persona real conservando el `id` y todos los vínculos existentes
-- No cuentan para estadísticas ni para el cálculo de consanguinidad
-- Al exportar a GEDCOM se emiten como `INDI` sin `NAME`, que es la convención habitual
-
----
-
-## Consultas derivadas
-
-Nada de esto se almacena; se calcula en memoria a partir de las cuatro colecciones.
-
-**Progenitores de una persona**: filas de `parentChildren` con `childId === personId`. Filtrando por `type: "BIOLOGICAL"` se obtiene la línea genética; sin filtrar, la familiar.
-
-**Hermanos**: sean `P(x)` el conjunto de `parentId` biológicos de `x`.
-
-- **Hermanos completos**: `P(a)` y `P(b)` coinciden y tienen dos elementos. Alternativa más precisa cuando hay `unionId`: ambos comparten el mismo par `(unionId, parentId×2)`
-- **Medios hermanos**: `|P(a) ∩ P(b)| === 1`
-- Los hermanos por adopción se calculan igual pero sobre vínculos no biológicos, y se presentan como categoría separada
-
-**Nivel generacional**: BFS desde la persona focal (nivel 0), `−1` hacia progenitores y `+1` hacia hijos. Los dos miembros de una unión se fuerzan al mismo nivel, prevaleciendo el más cercano a la persona focal.
-
-**Detección de ciclos**: DFS sobre las aristas de `parentChildren` antes de confirmar cualquier vínculo nuevo.
+- Ghosts are created **on demand**, never in cascade. Only when the user needs to express "there was a mother here, but I don't know who she was" to complete a union or a line
+- `isPlaceholder: true`, with no mandatory name or dates
+- **They never generate their own parents automatically**
+- The UI draws them differently (dashed border, no photo) and allows "materializing" them: turning them into a real person while keeping the `id` and all existing links
+- They do not count toward statistics or the consanguinity calculation
+- When exporting to GEDCOM they are emitted as `INDI` without `NAME`, which is the usual convention
 
 ---
 
-## Validaciones
+## Derived queries
 
-Cada regla tiene **id estable, severidad y mensaje**. La lista completa con casos de prueba irá en `validation-rules.md`; aquí queda el marco y las reglas fundacionales.
+None of this is stored; it is computed in memory from the four collections.
 
-### Severidades
+**A person's parents**: rows of `parentChildren` with `childId === personId`. Filtering by `type: "BIOLOGICAL"` gives the genetic line; unfiltered, the family line.
 
-| Severidad | Comportamiento |
+**Siblings**: let `P(x)` be the set of biological `parentId`s of `x`.
+
+- **Full siblings**: `P(a)` and `P(b)` coincide and have two elements. More precise alternative when there is a `unionId`: both share the same pair `(unionId, parentId×2)`
+- **Half siblings**: `|P(a) ∩ P(b)| === 1`
+- Adoptive siblings are computed the same way but over non-biological links, and are presented as a separate category
+
+**Generational level**: BFS from the focal person (level 0), `−1` toward parents and `+1` toward children. The two members of a union are forced to the same level, with the one closest to the focal person prevailing.
+
+**Cycle detection**: DFS over the `parentChildren` edges before confirming any new link.
+
+---
+
+## Validations
+
+Each rule has a **stable id, severity, and message**. The full list with test cases will go in `validation-rules.md`; here we keep the framework and the foundational rules.
+
+### Severities
+
+| Severity | Behavior |
 |---|---|
-| **`ERROR`** | Bloquea el guardado. Reservado a lo estructuralmente imposible |
-| **`WARNING`** | Se guarda igual. Se muestra un aviso en la ficha y en un panel de revisión |
-| **`INFO`** | Solo aparece en el panel de revisión |
+| **`ERROR`** | Blocks saving. Reserved for what is structurally impossible |
+| **`WARNING`** | Saved anyway. A notice is shown on the record and in a review panel |
+| **`INFO`** | Only appears in the review panel |
 
-**Criterio de reparto**: si un dato puede ser real por raro que parezca, es `WARNING`. Un árbol genealógico que se niega a guardar datos incómodos es inservible; el usuario documenta lo que encuentra, no lo que le gustaría encontrar.
+**Allocation criterion**: if a datum can be real however odd it looks, it is a `WARNING`. A family tree that refuses to save inconvenient data is useless; the user documents what they find, not what they would like to find.
 
-### Reglas estructurales — `ERROR`
+### Structural rules — `ERROR`
 
-| ID | Regla |
+| ID | Rule |
 |---|---|
-| `SELF_PARENT` | Una persona no puede ser progenitor de sí misma |
-| `CYCLE` | Un ancestro no puede ser descendiente de sus propios descendientes (DFS antes de confirmar el vínculo) |
-| `DUPLICATE_EDGE` | No puede haber dos `ParentChild` con el mismo `parentId` + `childId` |
-| `SELF_UNION` | `partner1Id` y `partner2Id` no pueden ser la misma persona |
-| `DANGLING_REF` | Toda referencia por `id` debe resolver a una entidad existente |
-| `TOO_MANY_BIO_PARENTS` | Máximo dos progenitores de tipo `BIOLOGICAL` por hijo |
+| `SELF_PARENT` | A person cannot be their own parent |
+| `CYCLE` | An ancestor cannot be a descendant of their own descendants (DFS before confirming the link) |
+| `DUPLICATE_EDGE` | There cannot be two `ParentChild` with the same `parentId` + `childId` |
+| `SELF_UNION` | `partner1Id` and `partner2Id` cannot be the same person |
+| `DANGLING_REF` | Every reference by `id` must resolve to an existing entity |
+| `TOO_MANY_BIO_PARENTS` | A maximum of two `BIOLOGICAL` parents per child |
 
-### Reglas temporales — `WARNING` salvo imposibilidad
+### Temporal rules — `WARNING` unless impossible
 
-Todas se evalúan con `isBefore()`, y **solo saltan como `ERROR` si el resultado es `IMPOSSIBLE`**; con solapamiento de intervalos son `WARNING`:
+All are evaluated with `isBefore()`, and **they only fire as `ERROR` if the result is `IMPOSSIBLE`**; with interval overlap they are `WARNING`:
 
-| ID | Regla | Nota |
+| ID | Rule | Note |
 |---|---|---|
-| `DEATH_BEFORE_BIRTH` | La defunción no puede preceder al nacimiento | `ERROR` si `IMPOSSIBLE` |
-| `PARENT_TOO_YOUNG` | Un progenitor biológico debe haber nacido al menos 12 años antes que su hijo | Umbral configurable. Siempre `WARNING` |
-| `CHILD_AFTER_MOTHER_DEATH` | Un hijo no puede nacer después de la muerte de la madre biológica | `ERROR` si `IMPOSSIBLE`. Margen de 9 meses tras la defunción para partos póstumos |
-| `CHILD_LONG_AFTER_FATHER_DEATH` | Hijo nacido más de 9 meses tras la muerte del padre biológico | Siempre `WARNING` |
-| `IMPLAUSIBLE_LIFESPAN` | Vida superior a 120 años | Siempre `WARNING` |
-| `PARENT_TOO_OLD` | Madre biológica con más de 55 años al nacer el hijo | Siempre `WARNING` |
-| `UNION_AFTER_DEATH` | Unión iniciada tras la muerte de uno de los miembros | `ERROR` si `IMPOSSIBLE` |
+| `DEATH_BEFORE_BIRTH` | Death cannot precede birth | `ERROR` if `IMPOSSIBLE` |
+| `PARENT_TOO_YOUNG` | A biological parent must have been born at least 12 years before their child | Configurable threshold. Always `WARNING` |
+| `CHILD_AFTER_MOTHER_DEATH` | A child cannot be born after the death of the biological mother | `ERROR` if `IMPOSSIBLE`. 9-month margin after death for posthumous births |
+| `CHILD_LONG_AFTER_FATHER_DEATH` | Child born more than 9 months after the death of the biological father | Always `WARNING` |
+| `IMPLAUSIBLE_LIFESPAN` | Lifespan over 120 years | Always `WARNING` |
+| `PARENT_TOO_OLD` | Biological mother over 55 years old at the child's birth | Always `WARNING` |
+| `UNION_AFTER_DEATH` | Union started after the death of one of the members | `ERROR` if `IMPOSSIBLE` |
 
-### Consanguinidad
+### Consanguinity
 
-- El sistema **permite** uniones entre parientes: son un hecho histórico frecuente
-- Si dos personas con ancestros comunes tienen descendencia, se emite un `WARNING` (`CONSANGUINEOUS_UNION`) indicando el ancestro común más cercano
-- **El cálculo del coeficiente de consanguinidad queda fuera del MVP.** Es un algoritmo con entidad propia (recorrido de todos los caminos entre ancestros comunes) y no bloquea nada. La detección de ancestro común compartido sí entra, porque es un simple cruce de conjuntos
+- The system **allows** unions between relatives: they are a frequent historical fact
+- If two people with common ancestors have offspring, a `WARNING` (`CONSANGUINEOUS_UNION`) is emitted indicating the closest common ancestor
+- **Calculating the consanguinity coefficient is out of scope for the MVP.** It is an algorithm in its own right (traversing all paths between common ancestors) and blocks nothing. Detecting a shared common ancestor does make it in, because it is a simple set intersection
 
 ---
 
-## Fuera de alcance en la v1
+## Out of scope in v1
 
-Se documentan aquí para que el esquema deje hueco y las migraciones sean limpias:
+They are documented here so that the schema leaves room and migrations are clean:
 
-- **Fuentes y citas** (`SOUR` de GEDCOM): de dónde sale cada dato. Es lo primero que se añadirá en la v2
-- **`Place` como entidad** con jerarquía y coordenadas
-- **Eventos arbitrarios** más allá de nacimiento y defunción (bautismo, censo, emigración)
-- **Cálculo del coeficiente de consanguinidad**
-- **Detección de duplicados** al importar
+- **Sources and citations** (GEDCOM `SOUR`): where each datum comes from. It is the first thing that will be added in v2
+- **`Place` as an entity** with hierarchy and coordinates
+- **Arbitrary events** beyond birth and death (baptism, census, emigration)
+- **Calculation of the consanguinity coefficient**
+- **Duplicate detection** on import

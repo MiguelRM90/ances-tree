@@ -1,161 +1,161 @@
-# Arquitectura
+# Architecture
 
-> Documentos relacionados: [decisions.md](decisions.md) · [data-model.md](data-model.md) · [storage.md](storage.md) · [validation-rules.md](validation-rules.md) · [gedcom-mapping.md](gedcom-mapping.md)
+> Related documents: [decisions.md](decisions.md) · [data-model.md](data-model.md) · [storage.md](storage.md) · [validation-rules.md](validation-rules.md) · [gedcom-mapping.md](gedcom-mapping.md)
 
-Cómo se organiza el código: capas, flujo de datos, y el motor de maquetación del árbol.
+How the code is organized: layers, data flow, and the tree layout engine.
 
 ---
 
-## Regla de dependencias
+## Dependency rule
 
-Cuatro capas. **Las dependencias solo apuntan hacia abajo.** Nunca al revés, nunca en diagonal hacia arriba.
+Four layers. **Dependencies only point downwards.** Never the other way around, never diagonally upwards.
 
 ```
 ┌─────────────────────────────────────────────┐
-│  UI          Web Components, CSS            │  ← toca el DOM
+│  UI          Web Components, CSS            │  ← touches the DOM
 ├─────────────────────────────────────────────┤
-│  STORE       Estado, mutaciones, eventos    │
+│  STORE       State, mutations, events       │
 ├─────────────────────────────────────────────┤
-│  DOMAIN      Modelo, validación, layout,    │  ← funciones puras
-│              consultas, GEDCOM              │
+│  DOMAIN      Model, validation, layout,     │  ← pure functions
+│              queries, GEDCOM                │
 ├─────────────────────────────────────────────┤
-│  STORAGE     Adaptadores de persistencia    │  ← toca disco/IndexedDB
+│  STORAGE     Persistence adapters           │  ← touches disk/IndexedDB
 └─────────────────────────────────────────────┘
 ```
 
-Consecuencias prácticas:
+Practical consequences:
 
-- **`domain/` no importa nada de las otras capas.** Ni DOM, ni IndexedDB, ni el store. Son funciones puras sobre estructuras de datos, y por eso se pueden probar sin navegador y ejecutar en un Worker
-- **`storage/` no conoce el store.** Recibe y devuelve objetos planos
-- **La UI no habla con `storage/`.** Siempre pasa por el store
-- Un `import` que viole esto es un error de arquitectura, no una comodidad. ESLint lo vigila con `no-restricted-imports`
+- **`domain/` imports nothing from the other layers.** No DOM, no IndexedDB, no store. They are pure functions over data structures, which is why they can be tested without a browser and run in a Worker
+- **`storage/` does not know the store.** It receives and returns plain objects
+- **The UI does not talk to `storage/`.** It always goes through the store
+- An `import` that violates this is an architecture error, not a convenience. ESLint enforces it with `no-restricted-imports`
 
 ---
 
-## Estructura de directorios
+## Directory structure
 
 ```
 src/
-├─ main.js                    Punto de entrada: capacidades, store, primer render
+├─ main.js                    Entry point: capabilities, store, first render
 ├─ config/
-│  ├─ limits.js               Todos los umbrales y tamaños máximos
-│  └─ strings.js              Literales de UI (una sola fuente, para la i18n futura)
+│  ├─ limits.js               All thresholds and maximum sizes
+│  └─ strings.js              UI literals (a single source, for future i18n)
 │
-├─ domain/                    ── FUNCIONES PURAS, SIN EFECTOS ──
+├─ domain/                    ── PURE FUNCTIONS, NO SIDE EFFECTS ──
 │  ├─ model/
-│  │  ├─ person.js            Constructores y normalizadores
+│  │  ├─ person.js            Constructors and normalizers
 │  │  ├─ union.js
 │  │  ├─ parent-child.js
 │  │  ├─ media.js
-│  │  └─ schema.js            Validación de forma + schemaVersion
+│  │  └─ schema.js            Shape validation + schemaVersion
 │  ├─ date/
 │  │  ├─ parse.js             raw → { kind, earliest, latest, precision }
-│  │  ├─ format.js            Renderizado legible
+│  │  ├─ format.js            Human-readable rendering
 │  │  └─ compare.js           isBefore() → CERTAIN | POSSIBLE | IMPOSSIBLE
 │  ├─ graph/
-│  │  ├─ queries.js           Progenitores, hijos, hermanos, cónyuges
-│  │  ├─ traversal.js         BFS/DFS, ancestros, descendientes, ciclos
-│  │  └─ generations.js       Asignación de nivel desde la persona focal
+│  │  ├─ queries.js           Parents, children, siblings, spouses
+│  │  ├─ traversal.js         BFS/DFS, ancestors, descendants, cycles
+│  │  └─ generations.js       Level assignment from the focal person
 │  ├─ validation/
 │  │  ├─ engine.js            validateAll(graph) → ValidationIssue[]
-│  │  └─ rules/               Un archivo por regla de validation-rules.md
+│  │  └─ rules/               One file per rule in validation-rules.md
 │  ├─ layout/
-│  │  ├─ engine.js            Grafo → LayoutTree (sin DOM)
-│  │  └─ edges.js             Qué líneas hay que dibujar y entre qué nodos
+│  │  ├─ engine.js            Graph → LayoutTree (no DOM)
+│  │  └─ edges.js             Which lines to draw and between which nodes
 │  ├─ gedcom/
-│  │  ├─ lexer.js             Texto → líneas tipadas
-│  │  ├─ parser.js            Líneas → estructura de registros
-│  │  ├─ import.js            Registros → modelo
-│  │  └─ export.js            Modelo → texto
+│  │  ├─ lexer.js             Text → typed lines
+│  │  ├─ parser.js            Lines → record structure
+│  │  ├─ import.js            Records → model
+│  │  └─ export.js            Model → text
 │  └─ migrations/
-│     └─ v1-to-v2.js          Puras: (data) => data
+│     └─ v1-to-v2.js          Pure: (data) => data
 │
-├─ storage/                   ── EFECTOS: DISCO E INDEXEDDB ──
-│  ├─ backend.js              Elige el modo: DISK u BROWSER. Nada más ramifica
-│  ├─ file-dialog.js          Abrir y guardar, con o sin File System Access
-│  ├─ opfs.js                 Proyectos dentro del almacenamiento del navegador
-│  ├─ names.js                Los nombres fijos dentro de una carpeta de proyecto
-│  ├─ error.js                StorageError, aparte para no crear ciclos
-│  ├─ capabilities.js         Comprobación de requisitos
-│  ├─ project-store.js        Abrir, crear, cargar y guardar la carpeta
-│  ├─ idb.js                  Wrapper mínimo de IndexedDB
-│  ├─ handles.js              Persistencia y permisos del DirectoryHandle
-│  ├─ media.js                Pipeline de importación: magic bytes, EXIF, hash
+├─ storage/                   ── SIDE EFFECTS: DISK AND INDEXEDDB ──
+│  ├─ backend.js              Chooses the mode: DISK or BROWSER. Nothing else branches
+│  ├─ file-dialog.js          Open and save, with or without File System Access
+│  ├─ opfs.js                 Projects inside browser storage
+│  ├─ names.js                The fixed names inside a project folder
+│  ├─ error.js                StorageError, kept separate to avoid cycles
+│  ├─ capabilities.js         Requirements check
+│  ├─ project-store.js        Open, create, load and save the folder
+│  ├─ idb.js                  Minimal IndexedDB wrapper
+│  ├─ handles.js              DirectoryHandle persistence and permissions
+│  ├─ media.js                Import pipeline: magic bytes, EXIF, hash
 │  └─ zip/
-│     ├─ write.js             CompressionStream + directorio central + CRC32
-│     └─ read.js              Directorio central primero, safeEntryPath
+│     ├─ write.js             CompressionStream + central directory + CRC32
+│     └─ read.js              Central directory first, safeEntryPath
 │
 ├─ store/
-│  ├─ store.js                Singleton. Estado + mutaciones + EventTarget
-│  ├─ actions.js              Operaciones de alto nivel
-│  └─ selectors.js            Lecturas derivadas, memoizadas
+│  ├─ store.js                Singleton. State + mutations + EventTarget
+│  ├─ actions.js              High-level operations
+│  └─ selectors.js            Derived reads, memoized
 │
 ├─ ui/
 │  ├─ components/
 │  │  ├─ app-root.js
-│  │  ├─ tree-canvas.js       Orquesta el render del árbol
+│  │  ├─ tree-canvas.js       Orchestrates the tree render
 │  │  ├─ person-card.js
 │  │  ├─ union-node.js
-│  │  ├─ tree-edges.js        Capa SVG
-│  │  ├─ person-editor.js     Formulario: guardar o cancelar
-│  │  ├─ relation-editor.js   Progenitores y parejas: se aplica al instante
-│  │  ├─ person-search.js     Buscar y elegir persona (evento configurable)
+│  │  ├─ tree-edges.js        SVG layer
+│  │  ├─ person-editor.js     Form: save or cancel
+│  │  ├─ relation-editor.js   Parents and partners: applied instantly
+│  │  ├─ person-search.js     Search and pick a person (configurable event)
 │  │  ├─ media-gallery.js
-│  │  ├─ issue-panel.js       Panel de revisión
+│  │  ├─ issue-panel.js       Review panel
 │  │  └─ ...
 │  ├─ styles/
-│  │  ├─ tokens.css           Custom properties: color, espaciado, tipografía
-│  │  └─ sheets.js            Constructable stylesheets compartidas
-│  └─ dom.js                  Helpers seguros (nunca innerHTML con datos)
+│  │  ├─ tokens.css           Custom properties: color, spacing, typography
+│  │  └─ sheets.js            Shared constructable stylesheets
+│  └─ dom.js                  Safe helpers (never innerHTML with data)
 │
 └─ workers/
    ├─ validation.worker.js
-   └─ layout.worker.js        Solo si el perfilado lo justifica
+   └─ layout.worker.js        Only if profiling justifies it
 ```
 
 ---
 
-## El store
+## The store
 
-Un único módulo singleton, propietario del estado. **Los componentes nunca se hablan entre sí.**
+A single singleton module that owns the state. **Components never talk to each other.**
 
 ```js
 class Store extends EventTarget {
   #state;   // { persons: Map, unions: Map, parentChildren: Map, media: Map, settings, issues }
 
-  getState() { return this.#state; }           // congelado, solo lectura
+  getState() { return this.#state; }           // frozen, read-only
 
   async apply(mutation) {
     const next = reduce(this.#state, mutation);
-    const errors = validateMutation(next, mutation);   // solo reglas ERROR
+    const errors = validateMutation(next, mutation);   // ERROR rules only
     if (errors.length) return { ok: false, errors };
 
     this.#state = next;
     this.dispatchEvent(new CustomEvent('change', { detail: { mutation, next } }));
-    scheduleSave();                                    // debounce, ver storage.md
-    scheduleValidation();                              // WARNING/INFO, en Worker
+    scheduleSave();                                    // debounce, see storage.md
+    scheduleValidation();                              // WARNING/INFO, in a Worker
     return { ok: true };
   }
 }
 ```
 
-**Flujo de datos, en una línea**: la intención sube con `CustomEvent`, el estado baja como propiedades.
+**Data flow, in one line**: intent goes up via `CustomEvent`, state comes down as properties.
 
 ```
 person-card ──CustomEvent('person:edit', {bubbles, composed})──▶ app-root
                                                                     │
                                                               store.apply(...)
                                                                     │
-                          ◀──── evento 'change' ────────────────────┘
+                          ◀──── 'change' event ─────────────────────┘
                                      │
-                        los componentes suscritos releen del store
+                        subscribed components re-read from the store
 ```
 
-**Por qué un store central y no propagación entre componentes**: el árbol se re-renderiza entero al cambiar de persona focal. Con propagación local, cada cambio tendría que atravesar la jerarquía de componentes y el orden de actualización se vuelve impredecible. Con store central hay un único punto de verdad y un único momento de re-render.
+**Why a central store and not propagation between components**: the tree is fully re-rendered when the focal person changes. With local propagation, every change would have to traverse the component hierarchy and the update order becomes unpredictable. With a central store there is a single source of truth and a single re-render moment.
 
-### Colecciones como `Map`
+### Collections as `Map`
 
-En memoria, las cuatro colecciones son `Map` indexados por `id`, más índices derivados que se reconstruyen al cargar:
+In memory, the four collections are `Map`s indexed by `id`, plus derived indexes that are rebuilt on load:
 
 ```js
 childrenByParent: Map<personId, ParentChild[]>
@@ -164,188 +164,188 @@ unionsByPerson:   Map<personId, Union[]>
 mediaByTarget:    Map<targetId, MediaObject[]>
 ```
 
-En disco siguen siendo arrays planos ([data-model.md](data-model.md#estructura-de-familyjson)). La conversión ocurre al cargar y al guardar, y es el único sitio donde existe.
+On disk they remain plain arrays ([data-model.md](data-model.md#structure-of-familyjson)). The conversion happens on load and on save, and it is the only place where it exists.
 
-### Deshacer / rehacer
+### Undo / redo
 
-Pila de mutaciones con su inversa. Cada mutación sabe deshacerse; no se guardan copias completas del estado.
+A stack of mutations together with their inverses. Each mutation knows how to undo itself; full copies of the state are not stored.
 
 ```js
 { type: 'person:update', personId, before: {...}, after: {...} }
 ```
 
-Límite de 50 pasos. La pila **no se persiste**: al reabrir el proyecto, el historial empieza vacío.
+Limit of 50 steps. The stack **is not persisted**: when the project is reopened, the history starts empty.
 
 ---
 
-## Motor de maquetación
+## Layout engine
 
-La parte más delicada del proyecto. Se separa en **fases estrictas** y solo la última toca el DOM.
+The most delicate part of the project. It is split into **strict phases** and only the last one touches the DOM.
 
-### Fase 0 — Recorte por foco
+### Phase 0 — Focus cropping
 
-Desde `settings.focalPersonId` se selecciona **una vista de pedigrí**, y se descarta todo lo demás **antes** de calcular nada:
+From `settings.focalPersonId`, **a pedigree view** is selected, and everything else is discarded **before** computing anything:
 
-- **Hacia arriba**: progenitores, sus progenitores, etc., hasta `maxGenerationsUp`. Los dos progenitores entran juntos, así que las parejas quedan intactas
-- **Hacia los lados, exactamente una vez**: los hermanos de la persona focal
-- **Hacia abajo**: hijos, sus hijos, etc., hasta `maxGenerationsDown`, cada uno con su pareja — sin ella, el nodo de unión y la generación siguiente no tendrían sentido
+- **Upwards**: parents, their parents, etc., up to `maxGenerationsUp`. Both parents come in together, so couples remain intact
+- **Sideways, exactly once**: the focal person's siblings
+- **Downwards**: children, their children, etc., up to `maxGenerationsDown`, each with their partner — without the partner, the union node and the next generation would make no sense
 
-**Lo que NO alcanza importa tanto como lo que sí**: no se expande lateralmente por la red de primos.
+**What is NOT reached matters as much as what is**: it does not expand laterally through the network of cousins.
 
-> **Esta distinción es el punto entero.** Un BFS acotado solo por generación parece razonable y no lo es: desde una persona llega a un ancestro, luego a todos los hijos de ese ancestro, luego a sus parejas, luego a los hijos de esas, y así hasta barrer la banda generacional completa. Medido sobre un archivo de 10.000 personas: **±1 generación alcanzaba a 2.439 personas y ±4 a 9.981** — el archivo entero. Acotar profundidad sin acotar anchura no acota nada.
+> **This distinction is the whole point.** A BFS bounded only by generation looks reasonable and is not: from one person it reaches an ancestor, then all of that ancestor's children, then their partners, then those partners' children, and so on until it sweeps the entire generational band. Measured on a 10,000-person file: **±1 generation reached 2,439 people and ±4 reached 9,981** — the entire file. Bounding depth without bounding width bounds nothing.
 >
-> Con la vista de pedigrí, la misma persona focal con ±4 muestra **36 personas y 62 nodos**, dentro del presupuesto de 200.
+> With the pedigree view, the same focal person with ±4 shows **36 people and 62 nodes**, within the budget of 200.
 
-**Fuera de alcance por ahora**: una vista de "familia extendida" que sí incluya primos, como opción explícita del usuario. El motor la soporta; lo que no puede ser es el comportamiento por defecto.
+**Out of scope for now**: an "extended family" view that does include cousins, as an explicit user option. The engine supports it; what it cannot be is the default behavior.
 
-### Fase 1 — Asignación de generaciones
+### Phase 1 — Generation assignment
 
-- La persona focal es el nivel `0`
-- Progenitores en `−1`, hijos en `+1`, recursivamente
-- **Normalización de uniones**: los dos miembros de una unión se fuerzan al mismo nivel. Prevalece el nivel del que esté más cerca de la persona focal
-- Los conflictos (alguien alcanzable por dos caminos con niveles distintos, frecuente en uniones consanguíneas) se resuelven por **camino más corto a la persona focal**; a igualdad, por el camino descendente
+- The focal person is level `0`
+- Parents at `−1`, children at `+1`, recursively
+- **Union normalization**: both members of a union are forced to the same level. The level of whichever is closer to the focal person prevails
+- Conflicts (someone reachable by two paths with different levels, common in consanguineous unions) are resolved by the **shortest path to the focal person**; on a tie, by the descending path
 
-### Fase 2 — Nodos de unión
+### Phase 2 — Union nodes
 
-Las uniones **no** conectan tarjetas entre sí. Se inserta un nodo sintético entre los dos miembros, del que sale una única línea vertical hacia los hijos.
+Unions do **not** connect cards to each other. A synthetic node is inserted between the two members, from which a single vertical line goes down to the children.
 
 ```
-  [ Padre ]───●───[ Madre ]        ← ● es el nodo de unión
-              │
-      ┌───────┼───────┐
-   [Hijo1] [Hijo2] [Hijo3]
+  [ Father ]───●───[ Mother ]        ← ● is the union node
+               │
+       ┌───────┼───────┐
+    [Child1] [Child2] [Child3]
 ```
 
-Sin ese nodo, N hijos × 2 progenitores producen 2N líneas cruzándose. Con él, 2 + N.
+Without that node, N children × 2 parents produce 2N crossing lines. With it, 2 + N.
 
-### Fase 3 — Ordenación y placeholders
+### Phase 3 — Ordering and placeholders
 
-Dentro de cada fila:
+Within each row:
 
-- Los hermanos se ordenan por fecha de nacimiento; los de fecha desconocida van al final
-- Las ramas familiares se ordenan para minimizar cruces (heurística de mediana del baricentro de los padres)
-- Se insertan **placeholders de maquetación**: elementos vacíos e invisibles que reservan espacio entre ramas para evitar solapamientos y mantener la simetría
+- Siblings are sorted by birth date; those with an unknown date go last
+- Family branches are sorted to minimize crossings (median heuristic on the parents' barycenter)
+- **Layout placeholders** are inserted: empty, invisible elements that reserve space between branches to avoid overlaps and keep symmetry
 
-> **No confundir** con las personas fantasma del modelo ([data-model.md](data-model.md#personas-fantasma-placeholders)). Estos son puramente visuales y no existen fuera del layout.
+> **Do not confuse** these with the model's ghost persons ([data-model.md](data-model.md#ghost-persons-placeholders)). These are purely visual and do not exist outside the layout.
 
-### Fase 4 — Posicionamiento
+### Phase 4 — Positioning
 
-**El motor asigna la coordenada X de cada nodo.** Las medidas viven en `src/config/layout.js` y el lienzo las republica como custom properties, para que haya una sola definición.
+**The engine assigns the X coordinate of each node.** The measurements live in `src/config/layout.js` and the canvas republishes them as custom properties, so that there is a single definition.
 
-> **Decisión revertida.** Este documento decía *"NO se calculan coordenadas a mano: CSS coloca las cajas"*. Estaba mal para un árbol genealógico y hubo que deshacerlo.
+> **Reversed decision.** This document used to say *"Coordinates are NOT computed by hand: CSS places the boxes"*. That was wrong for a family tree and had to be undone.
 >
-> Con flexbox, **cada fila se centra por su cuenta**, sin relación entre dónde queda una pareja y dónde quedan sus hijos. Una pareja podía acabar en un extremo del árbol y su descendencia en el otro, con la barra que los une cruzando la pantalla entera. Ordenar las filas ayuda, pero no puede mover una fila lateralmente: es una limitación del modelo de caja, no un fallo de implementación.
+> With flexbox, **each row centers itself on its own**, with no relationship between where a couple ends up and where its children end up. A couple could end up at one end of the tree and its descendants at the other, with the bar joining them crossing the entire screen. Sorting the rows helps, but cannot move a row laterally: it is a limitation of the box model, not an implementation flaw.
 
-Dos reglas, una por mitad del reloj de arena. Usar una sola para ambas fue el error que dejó solo una familia de cada siete bien centrada:
+Two rules, one for each half of the hourglass. Using a single one for both was the mistake that left only one family in seven properly centered:
 
-- **Hacia abajo**: la pareja se centra sobre sus hijos. Cada subárbol recibe una banda propia (`spreadDown`), así que es exacto y nada puede colisionar
-- **Hacia arriba**: los ancestros se centran sobre la pareja. Una pareja tiene dos juegos de abuelos, así que **se centra el grupo**, no cada bloque — tratarlos como hijos normales haría que los dos quisieran el mismo sitio
+- **Downwards**: the couple is centered over its children. Each subtree receives its own band (`spreadDown`), so it is exact and nothing can collide
+- **Upwards**: the ancestors are centered over the couple. A couple has two sets of grandparents, so **the group is centered**, not each block — treating them as ordinary children would make both want the same spot
 
-El objetivo del centrado es el **tramo de las tarjetas de los hijos**, no el de sus bloques: un bloque contiene también al cónyuge, y centrar sobre bloques dejaba a la pareja 124 px —media pareja— al lado de la barra a la que baja su línea.
+The centering target is the **span of the children's cards**, not that of their blocks: a block also contains the spouse, and centering on blocks left the couple 124 px — half a couple — off from the bar their line drops to.
 
-Medido sobre 10.000 personas: **85% de las familias centradas con menos de 1 px de error**, mediana 0.
+Measured on 10,000 people: **85% of families centered with less than 1 px of error**, median 0.
 
-### Fase 5 — Trazado SVG
+### Phase 5 — SVG routing
 
-Una capa `<svg>` del tamaño exacto del árbol, con rutas ortogonales `<path>`. Una ruta por grupo de hermanos, agrupadas por nivel generacional y asignadas a pistas escalonadas descendentes de izquierda a derecha para evitar colisiones horizontales y que las familias vecinas nunca sean colineales.
+A `<svg>` layer of the exact size of the tree, with orthogonal `<path>` routes. One route per sibling group, grouped by generational level and assigned to staggered descending tracks from left to right to avoid horizontal collisions and so that neighboring families are never collinear.
 
-**Nada mide el DOM.** Las coordenadas vienen de la fase 4, así que no hay `getBoundingClientRect`, ni `requestAnimationFrame`, ni recálculo en `resize`.
+**Nothing measures the DOM.** The coordinates come from phase 4, so there is no `getBoundingClientRect`, no `requestAnimationFrame`, and no recalculation on `resize`.
 
-Merece decirse porque antes era al revés, y de ahí salieron cuatro bugs distintos: medir antes de que el navegador hubiera maquetado, medir contra el ancestro equivocado, un SVG más estrecho que el árbol que cubría, y una medida obsoleta tras hacer scroll. Ninguno de esos puede pasarle a una coordenada que nunca se midió.
+It is worth stating because it used to be the other way around, and four different bugs came out of that: measuring before the browser had laid out, measuring against the wrong ancestor, an SVG narrower than the tree it covered, and a stale measurement after scrolling. None of those can happen to a coordinate that was never measured.
 
-La geometría vive en `src/ui/edge-paths.js`, separada del componente que pinta y cubierta por tests sobre rectángulos sintéticos.
+The geometry lives in `src/ui/edge-paths.js`, separate from the component that paints and covered by tests on synthetic rectangles.
 
-### Fase 6 — Transiciones
+### Phase 6 — Transitions
 
-Al cambiar de persona focal, `document.startViewTransition()` si está disponible, con degradación limpia si no. Las tarjetas que sobreviven al cambio llevan `view-transition-name` derivado de su `id`, para que se desplacen en lugar de parpadear.
+When the focal person changes, `document.startViewTransition()` if available, with clean degradation if not. Cards that survive the change carry a `view-transition-name` derived from their `id`, so that they move instead of flickering.
 
 ---
 
-## Esquema de IndexedDB
+## IndexedDB schema
 
-Base `ancestree`, versión `1`:
+Database `ancestree`, version `1`:
 
-| Object store | Clave | Índices | Contenido |
+| Object store | Key | Indexes | Contents |
 |---|---|---|---|
-| `projects` | `id` | `openedAt` | Proyectos recientes: id, título, nombre de carpeta |
-| `handles` | `key` | — | `FileSystemDirectoryHandle` de cada proyecto |
+| `projects` | `id` | `openedAt` | Recent projects: id, title, folder name |
+| `handles` | `key` | — | `FileSystemDirectoryHandle` of each project |
 
-**IndexedDB no guarda datos familiares.** El grafo vive en `family.json` dentro de la carpeta del proyecto — en el disco del usuario o en el almacenamiento del navegador, según el modo ([storage.md](storage.md#decisión-dos-modos-de-almacenamiento)) — y en memoria mientras se trabaja. Esto elimina el conflicto entre cifrado e índices.
+**IndexedDB does not store family data.** The graph lives in `family.json` inside the project folder — on the user's disk or in browser storage, depending on the mode ([storage.md](storage.md#decision-two-storage-modes)) — and in memory while working. This eliminates the conflict between encryption and indexes.
 
-En modo `BROWSER` la lista de archivos **no** se lee de IndexedDB sino de las propias carpetas: son la verdad, y alguien que haya borrado IndexedDB pero no su almacenamiento vería si no que no tiene nada mientras los datos siguen ahí.
+In `BROWSER` mode the file list is **not** read from IndexedDB but from the folders themselves: they are the truth, and someone who cleared IndexedDB but not their storage would otherwise see that they have nothing while the data is still there.
 
-### Por qué IndexedDB y no `localStorage`
+### Why IndexedDB and not `localStorage`
 
-Es la pregunta obvia, y la respuesta es tajante: **un `FileSystemDirectoryHandle` es un objeto, no una cadena**. Sobrevive al clonado estructurado y a nada más — `JSON.stringify` de un handle devuelve `{}`.
+It is the obvious question, and the answer is blunt: **a `FileSystemDirectoryHandle` is an object, not a string**. It survives structured cloning and nothing else — `JSON.stringify` of a handle returns `{}`.
 
-IndexedDB es el **único** sitio del navegador donde puede guardarse un handle, y guardarlo es lo que permite reabrir tu carpeta en vez de pedírtela cada sesión. Los proyectos recientes sí cabrían en `localStorage`, pero tener dos mecanismos para ahorrar veinte líneas no compensa cuando la base ya está abierta.
+IndexedDB is the **only** place in the browser where a handle can be stored, and storing it is what allows your folder to be reopened instead of asking for it every session. Recent projects would fit in `localStorage`, but having two mechanisms to save twenty lines is not worth it when the database is already open.
 
-> Hubo un tercer almacén, `prefs`, con el id del último proyecto abierto. Se eliminó: el último proyecto es sencillamente el más reciente de `projects`, así que era un almacén y una cosa más que mantener sincronizada para una información que ya estaba.
+> There used to be a third store, `prefs`, with the id of the last opened project. It was removed: the last project is simply the most recent one in `projects`, so it was one more store and one more thing to keep in sync for information that was already there.
 
-El versionado se hace **solo** en `onupgradeneeded`, con migraciones acumulativas.
+Versioning is done **only** in `onupgradeneeded`, with cumulative migrations.
 
 ---
 
-## Presupuesto de rendimiento
+## Performance budget
 
-Objetivos medibles. Si algo los incumple, se perfila antes de optimizar a ojo.
+Measurable targets. If something misses them, profile before optimizing by eye.
 
-| Métrica | Objetivo |
+| Metric | Target |
 |---|---|
-| Cambio de persona focal → árbol pintado | < 150 ms con 200 nodos visibles |
-| Apertura de un proyecto de 10.000 personas | < 2 s hasta interactivo |
-| `validateAll` sobre 10.000 personas | < 1 s, en Worker, sin bloquear la UI |
-| Import de 1.000 fotos | Con progreso visible y cancelable |
-| Tamaño del app shell (comprimido) | < 150 KB |
+| Focal person change → tree painted | < 150 ms with 200 visible nodes |
+| Opening a 10,000-person project | < 2 s until interactive |
+| `validateAll` over 10,000 people | < 1 s, in a Worker, without blocking the UI |
+| Import of 1,000 photos | With visible progress and cancellable |
+| App shell size (compressed) | < 150 KB |
 
-Tres decisiones que sostienen esto: el recorte por foco de la Fase 0, la validación en Worker, y no meter binarios en el grafo.
+Three decisions underpin this: the focus cropping of Phase 0, validation in a Worker, and keeping binaries out of the graph.
 
 ---
 
-## Errores
+## Errors
 
-- **`domain/` nunca lanza por datos inválidos.** Devuelve resultados: `{ ok, errors }` o `ValidationIssue[]`. Las excepciones se reservan para bugs de programación
-- **`storage/` sí lanza**, porque los fallos de E/S son excepcionales de verdad: permiso denegado, carpeta desaparecida, cuota agotada
-- La UI captura en el borde y traduce a mensajes accionables. **Nunca se muestra un stack trace ni un mensaje del navegador en crudo**
-- Los errores de import se **acumulan** y se presentan como resumen, con opción de continuar o cancelar. Nunca se aborta en el primer fallo
+- **`domain/` never throws on invalid data.** It returns results: `{ ok, errors }` or `ValidationIssue[]`. Exceptions are reserved for programming bugs
+- **`storage/` does throw**, because I/O failures are truly exceptional: permission denied, vanished folder, exhausted quota
+- The UI catches at the boundary and translates into actionable messages. **A stack trace or a raw browser message is never shown**
+- Import errors are **accumulated** and presented as a summary, with the option to continue or cancel. It never aborts on the first failure
 
 ---
 
 ## Tests
 
-| Capa | Cómo |
+| Layer | How |
 |---|---|
-| `domain/` | Tests unitarios puros. Es donde va el grueso: fechas, validaciones, consultas de grafo, layout, GEDCOM |
-| `storage/` | Web Test Runner en navegador real. El modo `BROWSER` se prueba entero contra el OPFS de verdad, incluida la exportación sin diálogo de guardado (`test/browser-storage.test.js`). El selector de carpeta no se puede automatizar, así que la ruta `DISK` se prueba a mano con una lista de comprobación |
-| `store/` | Tests de mutación + evento emitido |
-| `ui/` | Web Test Runner. Montar componente, disparar evento, comprobar DOM |
+| `domain/` | Pure unit tests. This is where the bulk goes: dates, validations, graph queries, layout, GEDCOM |
+| `storage/` | Web Test Runner in a real browser. `BROWSER` mode is tested entirely against the real OPFS, including export without a save dialog (`test/browser-storage.test.js`). The folder picker cannot be automated, so the `DISK` path is tested manually with a checklist |
+| `store/` | Mutation tests + emitted event |
+| `ui/` | Web Test Runner. Mount component, fire event, check DOM |
 
-**Fixtures obligatorios**, en `test/fixtures/`:
+**Mandatory fixtures**, in `test/fixtures/`:
 
-- Árbol mínimo (3 personas, 1 unión)
-- Árbol con adopción mixta (padre biológico + madre adoptiva) — el caso que motivó el diseño de `ParentChild`
-- Árbol con unión consanguínea
-- Árbol con personas fantasma
-- Árbol de 10.000 personas, generado, para las pruebas de rendimiento
-- GEDCOM de al menos cinco aplicaciones distintas ([gedcom-mapping.md](gedcom-mapping.md#corpus-de-pruebas))
+- Minimal tree (3 people, 1 union)
+- Tree with mixed adoption (biological father + adoptive mother) — the case that motivated the design of `ParentChild`
+- Tree with a consanguineous union
+- Tree with ghost persons
+- 10,000-person tree, generated, for performance tests
+- GEDCOM from at least five different applications ([gedcom-mapping.md](gedcom-mapping.md#test-corpus))
 
-Todos **anonimizados**: un fixture con datos familiares reales es una filtración de PII en un repositorio público.
+All **anonymized**: a fixture with real family data is a PII leak in a public repository.
 
 ---
 
-## Accesibilidad
+## Accessibility
 
-No es una fase posterior. Se decide ahora porque condiciona el markup:
+It is not a later phase. It is decided now because it conditions the markup:
 
-- Las tarjetas de persona son **`<button>` reales**, no `div` con `onclick`. Foco, teclado y lector de pantalla salen gratis
-- El árbol lleva `role="tree"` con `aria-level` correspondiente al nivel generacional
-- La capa SVG es `aria-hidden="true"`: es decoración. Las relaciones se expresan en el DOM accesible mediante `aria-describedby`
-- Navegación completa por teclado: flechas entre hermanos, arriba/abajo entre generaciones, `Enter` para focalizar
-- El contraste sale de `tokens.css`, con paleta verificada contra WCAG AA
-- Se respeta `prefers-reduced-motion` en las transiciones de vista
+- Person cards are **real `<button>`s**, not `div`s with `onclick`. Focus, keyboard, and screen reader support come for free
+- The tree carries `role="tree"` with `aria-level` matching the generational level
+- The SVG layer is `aria-hidden="true"`: it is decoration. Relationships are expressed in the accessible DOM through `aria-describedby`
+- Full keyboard navigation: arrows between siblings, up/down between generations, `Enter` to focus
+- Contrast comes from `tokens.css`, with a palette verified against WCAG AA
+- `prefers-reduced-motion` is respected in view transitions
 
-**Hay tres anchos**: escritorio, ventana estrecha (1200 y 900 px) y teléfono (640 px). En un teléfono la barra de herramientas **no se adelgaza más** — cada control es la única vía de llegar a lo que hace, y esconder uno dejaría una función inalcanzable. Se desplaza en horizontal en su propia fila, con el buscador debajo a ancho completo, porque buscar es como se llega a cualquier sitio en un árbol que no cabe en pantalla.
+**There are three widths**: desktop, narrow window (1200 and 900 px), and phone (640 px). On a phone the toolbar **is not slimmed down any further** — each control is the only way to reach what it does, and hiding one would leave a function unreachable. It scrolls horizontally in its own row, with the search box below at full width, because searching is how you get anywhere in a tree that does not fit on screen.
 
-Los diálogos pasan a ser hojas ancladas al borde inferior, medidas en `dvh` y no en `vh`: en un móvil la barra de direcciones entra y sale, y `100vh` es la altura *sin* ella — que es exactamente cómo se acaba con los botones de un formulario largo fuera de la pantalla.
+Dialogs become sheets anchored to the bottom edge, measured in `dvh` and not `vh`: on a mobile device the address bar slides in and out, and `100vh` is the height *without* it — which is exactly how you end up with the buttons of a long form off-screen.
 
-Los objetivos táctiles suben a 44 px, salvo el punto de unión: agrandarlo movería todas las líneas del árbol, ya que el motor de maquetación coloca las uniones por coordenada en vez de midiéndolas. Ahí crece el área de pulsación con un pseudo-elemento fuera del flujo, y el punto se queda como está.
+Touch targets grow to 44 px, except the union dot: enlarging it would move all the lines in the tree, since the layout engine places unions by coordinate instead of measuring them. There the tap area grows with an out-of-flow pseudo-element, and the dot stays as it is.

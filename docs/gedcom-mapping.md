@@ -1,41 +1,41 @@
-# Mapeo GEDCOM ↔ modelo
+# GEDCOM ↔ Model Mapping
 
-> Documentos relacionados: [data-model.md](data-model.md) (el modelo nativo) · [decisions.md](decisions.md#importación-de-gedcom) (parser y seguridad) · [storage.md](storage.md)
+> Related documents: [data-model.md](data-model.md) (the native model) · [decisions.md](decisions.md#gedcom-import) (parser and security) · [storage.md](storage.md)
 
-GEDCOM es **fase 2**, pero esta tabla se escribe **antes de cerrar el modelo**, porque determina qué campos deben existir. Un campo que no tiene destino en GEDCOM no es necesariamente un error, pero hay que saberlo a propósito y no por descuido.
+GEDCOM is **phase 2**, but this table is written **before the model is finalized**, because it determines which fields must exist. A field with no GEDCOM counterpart is not necessarily a mistake, but that has to be a conscious decision and not an oversight.
 
 ---
 
-## Postura
+## Stance
 
-**El JSON es la fuente de verdad. GEDCOM es una proyección para intercambiar con otras aplicaciones.**
+**JSON is the source of truth. GEDCOM is a projection for exchanging data with other applications.**
 
-De ahí se sigue todo lo demás:
+Everything else follows from that:
 
-- Se acepta que el GEDCOM exportado **pierde información**. Lo que se documenta es *qué* se pierde
-- Un ciclo export→import de GEDCOM **no es reversible sin pérdida**. La copia fiel es el ZIP, y así se le dice al usuario en el diálogo de exportación
-- Nunca se guarda el estado de la app solo en GEDCOM
+- It is accepted that the exported GEDCOM **loses information**. What gets documented is *what* is lost
+- A GEDCOM export→import cycle **is not lossless**. The faithful copy is the ZIP, and the user is told so in the export dialog
+- The app state is never stored in GEDCOM alone
 
-### Versión objetivo
+### Target version
 
-**Export por defecto: GEDCOM 5.5.1.** Es lo que lee todo el software genealógico existente, que es el único motivo de exportar. Se ofrece 7.0 como alternativa para quien lo necesite.
+**Default export: GEDCOM 5.5.1.** It is what all existing genealogy software reads, which is the only reason to export. 7.0 is offered as an alternative for those who need it.
 
-**Import: autodetección** leyendo `HEAD.GEDC.VERS`, con soporte para 5.5.1 y 7.0.
+**Import: autodetection** by reading `HEAD.GEDC.VERS`, supporting 5.5.1 and 7.0.
 
-Diferencias que hay que manejar:
+Differences to handle:
 
 | | 5.5.1 | 7.0 |
 |---|---|---|
-| Encoding | ANSEL, ASCII, UNICODE, UTF-8 | **UTF-8 obligatorio** |
-| Longitud de línea | 255 caracteres → `CONC`/`CONT` | Sin límite práctico |
-| Extensiones | Etiquetas con `_` inicial, sin declarar | Declaradas en `HEAD.SCHMA` con URI |
-| Fin de línea | `\r\n` habitual | `\r\n` o `\n` |
+| Encoding | ANSEL, ASCII, UNICODE, UTF-8 | **UTF-8 mandatory** |
+| Line length | 255 characters → `CONC`/`CONT` | No practical limit |
+| Extensions | Tags with a leading `_`, undeclared | Declared in `HEAD.SCHMA` with a URI |
+| Line ending | `\r\n` usual | `\r\n` or `\n` |
 
-ANSEL es un encoding de los años 80 que sigue apareciendo en archivos reales y que ningún navegador decodifica de forma nativa. **Si aparece `CHAR ANSEL`, se avisa al usuario de que los caracteres acentuados pueden llegar corruptos** y se importa como Latin-1, que es la aproximación menos mala; implementar una tabla ANSEL completa queda fuera de alcance.
+ANSEL is an encoding from the 1980s that still shows up in real files and that no browser decodes natively. **If `CHAR ANSEL` appears, the user is warned that accented characters may arrive corrupted** and the file is imported as Latin-1, which is the least bad approximation; implementing a full ANSEL table is out of scope.
 
 ---
 
-## Estructura del archivo
+## File structure
 
 ```
 0 HEAD
@@ -56,78 +56,78 @@ ANSEL es un encoding de los años 80 que sigue apareciendo en archivos reales y 
 0 TRLR
 ```
 
-Los `xref` (`@I1@`, `@F1@`, `@O1@`) se generan de forma **secuencial y estable dentro de una misma exportación**, con un mapa `UUID → xref` en memoria. No se persisten: los UUID del modelo son la identidad real, y reutilizar xrefs entre exportaciones no aporta nada.
+The `xref`s (`@I1@`, `@F1@`, `@O1@`) are generated **sequentially and stably within a single export**, using an in-memory `UUID → xref` map. They are not persisted: the model's UUIDs are the real identity, and reusing xrefs across exports adds nothing.
 
 ---
 
 ## `Person` → `INDI`
 
-| Campo del modelo | GEDCOM | Notas |
+| Model field | GEDCOM | Notes |
 |---|---|---|
-| `id` | `@I{n}@` | Vía mapa UUID→xref |
-| `firstName` + apellidos | `1 NAME Juan /García Pérez/` | Los apellidos van entre barras |
-| `firstName` | `2 GIVN Juan` | Redundante pero muy soportado |
-| `lastName` + `secondLastName` | `2 SURN García Pérez` | GEDCOM tiene **un solo** campo de apellido |
-| `secondLastName` | `2 _SURN2 Pérez` | Extensión: conserva la separación para nuestro propio round-trip |
-| `alsoKnownAs[]` | `1 NAME ...` adicionales con `2 TYPE aka` | |
-| `sex` | `1 SEX M` | Directo: `M`/`F`/`U`/`X`. Por eso se eligió este enum |
-| `nationality` | `1 NATI ES` | `NATI` es atributo estándar de 5.5.1 |
-| `birth.date` | `1 BIRT` / `2 DATE ...` | Ver *Fechas* |
+| `id` | `@I{n}@` | Via the UUID→xref map |
+| `firstName` + surnames | `1 NAME Juan /García Pérez/` | Surnames go between slashes |
+| `firstName` | `2 GIVN Juan` | Redundant but widely supported |
+| `lastName` + `secondLastName` | `2 SURN García Pérez` | GEDCOM has **a single** surname field |
+| `secondLastName` | `2 _SURN2 Pérez` | Extension: preserves the separation for our own round-trip |
+| `alsoKnownAs[]` | additional `1 NAME ...` with `2 TYPE aka` | |
+| `sex` | `1 SEX M` | Direct: `M`/`F`/`U`/`X`. This is why this enum was chosen |
+| `nationality` | `1 NATI ES` | `NATI` is a standard 5.5.1 attribute |
+| `birth.date` | `1 BIRT` / `2 DATE ...` | See *Dates* |
 | `birth.place` | `2 PLAC Cuenca, España` | |
 | `death.date` | `1 DEAT` / `2 DATE ...` | |
 | `death.place` | `2 PLAC ...` | |
-| `notes` | `1 NOTE ...` | Con `CONC`/`CONT` si excede 255 en 5.5.1 |
-| `media` vinculados | `1 OBJE @O{n}@` | |
-| — | `1 FAMC @F{n}@` | Familia en la que es hijo. Derivado de `ParentChild` |
-| — | `1 FAMS @F{n}@` | Familias en las que es cónyuge. Derivado de `Union` |
-| `createdAt` / `updatedAt` | `1 CHAN` / `2 DATE` | Solo `updatedAt`; GEDCOM no tiene fecha de creación |
+| `notes` | `1 NOTE ...` | With `CONC`/`CONT` if it exceeds 255 in 5.5.1 |
+| linked `media` | `1 OBJE @O{n}@` | |
+| — | `1 FAMC @F{n}@` | Family in which the person is a child. Derived from `ParentChild` |
+| — | `1 FAMS @F{n}@` | Families in which the person is a spouse. Derived from `Union` |
+| `createdAt` / `updatedAt` | `1 CHAN` / `2 DATE` | `updatedAt` only; GEDCOM has no creation date |
 
-**Personas fantasma** (`isPlaceholder: true`): se emiten como `INDI` **sin `NAME`**, que es la convención habitual y lo que otras aplicaciones esperan. Al reimportar, un `INDI` sin `NAME` ni fechas ni notas se marca como `isPlaceholder`. Es una heurística, no una garantía, y así se documenta.
+**Placeholder persons** (`isPlaceholder: true`): they are emitted as an `INDI` **without `NAME`**, which is the usual convention and what other applications expect. On re-import, an `INDI` with no `NAME`, dates, or notes is marked as `isPlaceholder`. This is a heuristic, not a guarantee, and is documented as such.
 
 ---
 
 ## `Union` → `FAM`
 
-| Campo del modelo | GEDCOM | Notas |
+| Model field | GEDCOM | Notes |
 |---|---|---|
 | `id` | `@F{n}@` | |
-| `partner1Id` / `partner2Id` | `1 HUSB @I{n}@` / `1 WIFE @I{n}@` | Ver problema abajo |
+| `partner1Id` / `partner2Id` | `1 HUSB @I{n}@` / `1 WIFE @I{n}@` | See problem below |
 | `type: MARRIED` | `1 MARR` + `2 DATE` | |
-| `type: PARTNERS` / `CASUAL` | `FAM` **sin** `MARR` | Ver abajo |
+| `type: PARTNERS` / `CASUAL` | `FAM` **without** `MARR` | See below |
 | `startDate` | `1 MARR` / `2 DATE ...` | |
 | `endDate` | `1 DIV` / `2 DATE ...` | |
 | `notes` | `1 NOTE ...` | |
-| hijos (vía `ParentChild`) | `1 CHIL @I{n}@` | |
+| children (via `ParentChild`) | `1 CHIL @I{n}@` | |
 
-### Problema: `HUSB`/`WIFE` imponen sexo
+### Problem: `HUSB`/`WIFE` impose sex
 
-GEDCOM 5.5.1 asume un matrimonio heterosexual: `HUSB` debe ser `SEX M` y `WIFE` debe ser `SEX F`. El modelo no hace esa suposición, y `partner1`/`partner2` no tienen significado semántico.
+GEDCOM 5.5.1 assumes a heterosexual marriage: `HUSB` must be `SEX M` and `WIFE` must be `SEX F`. The model makes no such assumption, and `partner1`/`partner2` carry no semantic meaning.
 
-**Estrategia de export:**
+**Export strategy:**
 
-1. Si los sexos son `M` y `F`, se asignan de forma natural
-2. Si son iguales o desconocidos, se asigna `HUSB` a `partner1Id` y `WIFE` a `partner2Id`, y se emite un `NOTE` explicativo
-3. Al importar, `HUSB`/`WIFE` alimentan `partner1Id`/`partner2Id` **sin inferir sexo de la etiqueta**
+1. If the sexes are `M` and `F`, they are assigned naturally
+2. If they are the same or unknown, `HUSB` is assigned to `partner1Id` and `WIFE` to `partner2Id`, and an explanatory `NOTE` is emitted
+3. On import, `HUSB`/`WIFE` feed `partner1Id`/`partner2Id` **without inferring sex from the tag**
 
-Muchas aplicaciones se quejarán del caso 2. Es una limitación del formato, no del modelo, y no se va a mutilar el modelo por ella.
+Many applications will complain about case 2. This is a limitation of the format, not of the model, and the model will not be mutilated because of it.
 
-### Problema: uniones no matrimoniales
+### Problem: non-marital unions
 
-5.5.1 no tiene forma estándar de decir "pareja no casada". La convención más extendida es un `FAM` sin evento `MARR`, que es lo que se hace. Para conservar el tipo exacto en un round-trip se añade una etiqueta de extensión (ver abajo).
+5.5.1 has no standard way to say "unmarried partners". The most widespread convention is a `FAM` without a `MARR` event, which is what is done. To preserve the exact type in a round-trip, an extension tag is added (see below).
 
 ---
 
 ## `ParentChild` → `FAMC` / `FAMS` / `PEDI`
 
-Aquí está el desajuste estructural más serio, y conviene entenderlo antes de implementar.
+This is the most serious structural mismatch, and it should be understood before implementing.
 
-**El modelo tiene una arista por progenitor. GEDCOM agrupa por familia.** GEDCOM dice "este individuo es hijo de esta familia", y el `PEDI` (pedigree) va en el enlace `FAMC`, es decir, **es único para los dos progenitores de esa familia**. Es exactamente la limitación que motivó rediseñar `ParentChild`.
+**The model has one edge per parent. GEDCOM groups by family.** GEDCOM says "this individual is a child of this family", and the `PEDI` (pedigree) goes on the `FAMC` link, meaning it is **single for both parents of that family**. This is exactly the limitation that motivated redesigning `ParentChild`.
 
 ### Export
 
-1. Los `ParentChild` de un mismo hijo se agrupan por `unionId`
-2. Cada grupo produce un `1 FAMC @F{n}@` en el `INDI` del hijo
-3. Los vínculos sin `unionId` (progenitor único) generan un `FAM` sintético con un solo `HUSB` o `WIFE`
+1. The `ParentChild` records of the same child are grouped by `unionId`
+2. Each group produces a `1 FAMC @F{n}@` on the child's `INDI`
+3. Links without a `unionId` (single parent) generate a synthetic `FAM` with a single `HUSB` or `WIFE`
 
 ```
 0 @I3@ INDI
@@ -137,38 +137,38 @@ Aquí está el desajuste estructural más serio, y conviene entenderlo antes de 
 2 PEDI adopted
 ```
 
-Valores de `PEDI` en 5.5.1: `birth`, `adopted`, `foster`, `sealing`.
+`PEDI` values in 5.5.1: `birth`, `adopted`, `foster`, `sealing`.
 
 | `ParentChild.type` | `PEDI` |
 |---|---|
 | `BIOLOGICAL` | `birth` |
 | `ADOPTED` | `adopted` |
 | `FOSTER` | `foster` |
-| `STEP` | `foster` + extensión (no existe en 5.5.1) |
-| `GUARDIAN` | `foster` + extensión |
+| `STEP` | `foster` + extension (does not exist in 5.5.1) |
+| `GUARDIAN` | `foster` + extension |
 
-### El caso que GEDCOM no sabe expresar
+### The case GEDCOM cannot express
 
-**Padre biológico + madre adoptiva en la misma familia.** El `PEDI` es uno solo para el enlace `FAMC`, así que hay que elegir.
+**Biological father + adoptive mother in the same family.** There is only one `PEDI` per `FAMC` link, so a choice has to be made.
 
-Mecanismos disponibles, por orden de preferencia:
+Available mechanisms, in order of preference:
 
-1. **GEDCOM 7.0** tiene el evento `ADOP` con `FAMC` y un subtag `ADOP` cuyo valor es `HUSB`, `WIFE` o `BOTH`. Resuelve el caso limpiamente, y es el argumento más fuerte para ofrecer export a 7.0
-2. **En 5.5.1**, se emite el `PEDI` del vínculo mayoritario (biológico si lo hay), más un `NOTE` legible por humanos describiendo la situación real, más las etiquetas de extensión para el round-trip propio
+1. **GEDCOM 7.0** has the `ADOP` event with `FAMC` and an `ADOP` subtag whose value is `HUSB`, `WIFE`, or `BOTH`. It solves the case cleanly, and it is the strongest argument for offering 7.0 export
+2. **In 5.5.1**, the `PEDI` of the majority link is emitted (biological if there is one), plus a human-readable `NOTE` describing the real situation, plus the extension tags for our own round-trip
 
 ### Import
 
-- `FAMC` + `PEDI` → un `ParentChild` **por cada** progenitor presente en ese `FAM`, todos con el mismo `type`
-- Si hay evento `ADOP` con `FAMC`/`ADOP` (7.0), se usa para asignar tipos distintos a cada progenitor
-- `certainty` no existe en GEDCOM: entra siempre como `CONFIRMED`
+- `FAMC` + `PEDI` → one `ParentChild` **for each** parent present in that `FAM`, all with the same `type`
+- If there is an `ADOP` event with `FAMC`/`ADOP` (7.0), it is used to assign different types to each parent
+- `certainty` does not exist in GEDCOM: it always comes in as `CONFIRMED`
 
 ---
 
-## Fechas
+## Dates
 
-El campo `raw` del modelo **es, esencialmente, el valor de un `DATE` de GEDCOM**. Fue diseñado así a propósito, y hace este mapeo casi trivial.
+The model's `raw` field **is, essentially, the value of a GEDCOM `DATE`**. It was designed that way on purpose, and it makes this mapping almost trivial.
 
-| `kind` | `DATE` emitido |
+| `kind` | Emitted `DATE` |
 |---|---|
 | `EXACT` | `12 MAY 1912` |
 | `PARTIAL` | `MAY 1912` / `1912` |
@@ -178,20 +178,20 @@ El campo `raw` del modelo **es, esencialmente, el valor de un `DATE` de GEDCOM**
 | `BEFORE` | `BEF 1900` |
 | `AFTER` | `AFT 1900` |
 | `BETWEEN` | `BET 1900 AND 1905` |
-| `UNKNOWN` | Se omite el `DATE` entero |
+| `UNKNOWN` | The entire `DATE` is omitted |
 
-Reglas de formato:
+Formatting rules:
 
-- Meses en **abreviatura inglesa de tres letras y mayúsculas**: `JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC`
-- Día sin cero a la izquierda: `2 MAY 1912`, no `02 MAY 1912`
-- Al importar, un `DATE` que no encaje en ningún patrón conocido se guarda **tal cual en `raw`** con `kind: 'UNKNOWN'` e intervalo `[null, null]`. **Nunca se descarta**: es información del usuario aunque la app no sepa interpretarla
-- Los calendarios alternativos (`@#DJULIAN@`, `@#DHEBREW@`, `@#DFRENCH R@`) se conservan en `raw` sin interpretar, con `WARNING`
+- Months as **three-letter uppercase English abbreviations**: `JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC`
+- Day without a leading zero: `2 MAY 1912`, not `02 MAY 1912`
+- On import, a `DATE` that matches no known pattern is stored **as-is in `raw`** with `kind: 'UNKNOWN'` and interval `[null, null]`. **It is never discarded**: it is user information even if the app cannot interpret it
+- Alternative calendars (`@#DJULIAN@`, `@#DHEBREW@`, `@#DFRENCH R@`) are kept uninterpreted in `raw`, with a `WARNING`
 
 ---
 
 ## `MediaObject` → `OBJE`
 
-En 5.5.1 se emite como registro de nivel 0 y se referencia desde `INDI` y `FAM`:
+In 5.5.1 it is emitted as a level-0 record and referenced from `INDI` and `FAM`:
 
 ```
 0 @O1@ OBJE
@@ -201,40 +201,40 @@ En 5.5.1 se emite como registro de nivel 0 y se referencia desde `INDI` y `FAM`:
 1 NOTE Taken 1952
 ```
 
-| Campo del modelo | GEDCOM |
+| Model field | GEDCOM |
 |---|---|
-| `path` | `1 FILE` — **ruta relativa**, la misma que en la carpeta y el ZIP |
+| `path` | `1 FILE` — **relative path**, the same as in the folder and the ZIP |
 | `mime` | `2 FORM jpeg` (`jpeg`, `png`, `webp`, `pdf`, `docx`, `xlsx`, etc.) |
 | `caption` | `2 TITL` |
-| `takenDate` | `1 NOTE` (5.5.1 no tiene fecha de media) |
-| `links[]` | `1 OBJE @O1@` en cada `INDI`/`FAM` |
+| `takenDate` | `1 NOTE` (5.5.1 has no media date) |
+| `links[]` | `1 OBJE @O1@` on each `INDI`/`FAM` |
 
-La ruta relativa funciona porque el `.ged` va **dentro de la misma carpeta o ZIP** que las carpetas `photos/` y `documents/` (ver [storage.md](storage.md#estructura-de-la-carpeta-de-proyecto)). Al importar un `.ged` suelto, sin binarios al lado, los `OBJE` se registran como media faltante y se le ofrece al usuario localizar la carpeta.
+The relative path works because the `.ged` lives **inside the same folder or ZIP** as the `photos/` and `documents/` folders (see [storage.md](storage.md#project-folder-structure)). When importing a standalone `.ged`, with no binaries alongside it, the `OBJE` records are registered as missing media and the user is offered the chance to locate the folder.
 
-**Seguridad**: `FILE` es una ruta que viene de un archivo externo. Pasa por el mismo `safeEntryPath()` que las entradas del ZIP. Un `FILE ../../../etc/passwd` o un `FILE file:///C:/...` se rechazan.
+**Security**: `FILE` is a path coming from an external file. It goes through the same `safeEntryPath()` as ZIP entries. A `FILE ../../../etc/passwd` or a `FILE file:///C:/...` is rejected.
 
 ---
 
-## Lo que NO cabe en GEDCOM
+## What does NOT fit in GEDCOM
 
-Estos campos existen solo en `family.json`. Se listan aquí para que quede claro por qué el ZIP —y no el `.ged`— es la copia real.
+These fields exist only in `family.json`. They are listed here to make clear why the ZIP —and not the `.ged`— is the real copy.
 
-| Campo | Destino en export | Recuperable al reimportar |
+| Field | Export destination | Recoverable on re-import |
 |---|---|---|
-| `ParentChild.certainty` | Extensión `_CERT` | Solo desde nuestro propio GEDCOM |
-| `Union.type` exacto (`PARTNERS` vs `CASUAL`) | Extensión `_UTYPE` | Ídem |
-| `Person.isPlaceholder` | Heurística (`INDI` sin `NAME`) | Aproximada |
-| `MediaLink.role` (`PORTRAIT`/`ATTACHMENT`) | Extensión `_ROLE` | Solo propio |
-| `MediaObject.hash` | Extensión `_HASH` | Solo propio |
-| `MediaObject.exifStripped` | Se pierde | No |
-| `GenealogicalDate.earliest/latest` | Se recalculan desde `raw` | Sí, derivados |
-| `settings` (persona focal, generaciones) | Se pierde | No |
-| `Person.createdAt` | Se pierde | No |
-| `schemaVersion` | Se pierde | No |
+| `ParentChild.certainty` | `_CERT` extension | Only from our own GEDCOM |
+| Exact `Union.type` (`PARTNERS` vs `CASUAL`) | `_UTYPE` extension | Same |
+| `Person.isPlaceholder` | Heuristic (`INDI` without `NAME`) | Approximate |
+| `MediaLink.role` (`PORTRAIT`/`ATTACHMENT`) | `_ROLE` extension | Own only |
+| `MediaObject.hash` | `_HASH` extension | Own only |
+| `MediaObject.exifStripped` | Lost | No |
+| `GenealogicalDate.earliest/latest` | Recalculated from `raw` | Yes, derived |
+| `settings` (focal person, generations) | Lost | No |
+| `Person.createdAt` | Lost | No |
+| `schemaVersion` | Lost | No |
 
-### Etiquetas de extensión
+### Extension tags
 
-Las extensiones propias llevan prefijo `_` en 5.5.1. Otras aplicaciones las ignoran silenciosamente, que es el comportamiento deseado.
+Our own extensions carry a `_` prefix in 5.5.1. Other applications silently ignore them, which is the desired behavior.
 
 ```
 0 @I3@ INDI
@@ -243,43 +243,43 @@ Las extensiones propias llevan prefijo `_` en 5.5.1. Otras aplicaciones las igno
 2 _CERT PROBABLE
 ```
 
-En 7.0 se declaran en `HEAD.SCHMA` con URI, según manda el estándar:
+In 7.0 they are declared in `HEAD.SCHMA` with a URI, as the standard requires:
 
 ```
 1 SCHMA
-2 TAG _CERT https://github.com/<usuario>/AncesTree/terms#certainty
+2 TAG _CERT https://github.com/<user>/AncesTree/terms#certainty
 ```
 
-**Regla firme: ninguna extensión puede ser necesaria para reconstruir la topología del árbol.** Si un import ignora todas las etiquetas `_`, el resultado debe seguir siendo un árbol correcto, solo con menos matices.
+**Firm rule: no extension may be required to reconstruct the tree topology.** If an import ignores all `_` tags, the result must still be a correct tree, just with fewer nuances.
 
 ---
 
-## Los dos apellidos
+## The two surnames
 
-GEDCOM tiene **un solo campo de apellido**, así que los dos van dentro separados por un espacio — que es como se escribe un nombre español de todas formas. Otras aplicaciones leen un nombre completo correcto.
+GEDCOM has **a single surname field**, so both go inside it separated by a space — which is how a Spanish name is written anyway. Other applications read a correct full name.
 
-La separación se conserva en la extensión `_SURN2`, de modo que nuestro propio import puede restaurarla. Al importar un GEDCOM ajeno **no se intenta partir el apellido**: `De la Fuente` y `García Pérez` son indistinguibles, y equivocarse corrompería el registro.
+The separation is preserved in the `_SURN2` extension, so that our own import can restore it. When importing a foreign GEDCOM, **no attempt is made to split the surname**: `De la Fuente` and `García Pérez` are indistinguishable, and getting it wrong would corrupt the record.
 
-## Plan de implementación
+## Implementation plan
 
-**Export antes que import.** El export es determinista y se prueba contra el propio modelo; el import se enfrenta a lo que otras aplicaciones hayan producido, que es un problema abierto.
+**Export before import.** Export is deterministic and is tested against the model itself; import has to face whatever other applications have produced, which is an open-ended problem.
 
-| | Estado |
+| | Status |
 |---|---|
-| Export 5.5.1 de `INDI` + `FAM` + fechas | ✅ Hecho |
-| Export de `OBJE` | ✅ Hecho |
-| `family.ged` incluido en cada ZIP exportado | ✅ Hecho |
-| Import: lexer y parser tolerantes | ✅ Hecho |
-| Import de `INDI` + `FAM` + `OBJE` | ✅ Hecho |
-| Export 7.0 | ❌ Pendiente |
-| Corpus de prueba con archivos de otras aplicaciones | ❌ Pendiente |
+| 5.5.1 export of `INDI` + `FAM` + dates | ✅ Done |
+| `OBJE` export | ✅ Done |
+| `family.ged` included in every exported ZIP | ✅ Done |
+| Import: tolerant lexer and parser | ✅ Done |
+| Import of `INDI` + `FAM` + `OBJE` | ✅ Done |
+| 7.0 export | ❌ Pending |
+| Test corpus with files from other applications | ❌ Pending |
 
-**Round-trip verificado sobre 10.000 personas**: 2,87 MB de GEDCOM, exportado e importado con **0 avisos**, y 9.971 personas / 4.266 uniones / 14.432 vínculos idénticos a ambos lados. Todos los nombres, todas las fechas literales, las 591 personas fantasma y las 8.442 nacionalidades sobreviven.
+**Round-trip verified on 10,000 people**: 2.87 MB of GEDCOM, exported and imported with **0 warnings**, and 9,971 people / 4,266 unions / 14,432 links identical on both sides. All names, all literal dates, the 591 placeholder persons, and the 8,442 nationalities survive.
 
-El ciclo destapó dos bugs que ninguna de las dos mitades habría encontrado sola: el export emitía **un `FAMC` por vínculo en lugar de uno por familia** (puntero duplicado, inválido, que volvía como dos juegos de enlaces), y **no escribía `NATI`** aunque el import ya lo leía. Escribir las dos direcciones y enfrentarlas es lo que las mantiene honestas.
+The cycle uncovered two bugs that neither half would have found on its own: the export emitted **one `FAMC` per link instead of one per family** (a duplicate, invalid pointer, which came back as two sets of links), and it **did not write `NATI`** even though the import already read it. Writing both directions and pitting them against each other is what keeps them honest.
 
-Lo que no vuelve es lo documentado arriba: el `PEDI` por pareja. Un hijo con padre biológico y madre adoptiva regresa con el mismo pedigrí en ambos.
+What does not come back is what is documented above: the per-partner `PEDI`. A child with a biological father and an adoptive mother returns with the same pedigree for both.
 
-### Corpus de pruebas
+### Test corpus
 
-Antes de dar el import por bueno hay que probar con archivos reales exportados por al menos: **Gramps, Ancestry, MyHeritage, FamilySearch y GEDCOM 7 de referencia**. Cada uno tiene sus manías. Los archivos de prueba van a `test/fixtures/gedcom/`, **anonimizados**: un fixture con datos familiares reales de alguien es una filtración de PII en un repositorio público.
+Before considering the import good, it must be tested with real files exported by at least: **Gramps, Ancestry, MyHeritage, FamilySearch, and the reference GEDCOM 7 files**. Each one has its quirks. The test files go in `test/fixtures/gedcom/`, **anonymized**: a fixture with someone's real family data is a PII leak in a public repository.

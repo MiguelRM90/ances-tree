@@ -62,7 +62,7 @@
 
 - **Source Code**: **All code in `src/`, `test/`, and scripts is strictly written in English** (variable names, functions, classes, comments, commit messages, filenames).
 - **UI Strings**: NEVER hardcoded in HTML markup. Defined in internationalization dictionaries under `src/config/locales/` (`en.js` and `es.js`).
-- **Design Specifications**: Maintained in Spanish inside the [`docs/`](docs/README.md) directory for technical reference.
+- **Design Specifications**: Maintained in English inside the [`docs/`](docs/README.md) directory for technical reference.
 
 ### Code Style
 
@@ -79,7 +79,7 @@
 
 ```
 ances-tree/
-├── docs/                   # Complete design specifications (in Spanish)
+├── docs/                   # Complete design specifications
 │   ├── README.md           # Documentation index and overview
 │   ├── vision.md           # Vision, privacy, and scope
 │   ├── architecture.md     # Architecture details and layout engine
@@ -158,5 +158,5 @@ Before concluding any task, feature, or bug fix:
    - Add new tests covering newly introduced functionality or edge cases.
    - Run the linter (`pnpm run lint`) and production build (`pnpm run build`) to ensure zero errors and warnings.
 2. **Documentation Review**:
-   - Check and update [`README.md`](README.md) (e.g. test counts, feature highlights) and design specifications in [`docs/`](docs/).
+   - Check and update [`README.md`](README.md) and its Spanish translation [`README.es.md`](README.es.md) together (e.g. test counts, feature highlights), and design specifications in [`docs/`](docs/).
    - Ensure documentation never drifts from code behavior.

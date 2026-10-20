@@ -44,4 +44,4 @@ This skill guides modifications and debugging of the genealogy graph layout engi
 ## Verification Checklist
 
 - Run `pnpm test test/edge-paths.test.js test/graph.test.js` to ensure zero regressions in routing.
-- Check `docs/architecture.md` (Motor de maquetación) for deep design background.
+- Check `docs/architecture.md` (Layout engine) for deep design background.

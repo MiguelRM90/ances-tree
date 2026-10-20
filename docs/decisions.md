@@ -1,87 +1,87 @@
-# Decisiones técnicas del proyecto
+# Project technical decisions
 
-> Documentos relacionados: [data-model.md](data-model.md) (modelo de datos) · [storage.md](storage.md) (almacenamiento, ZIP y PWA) · [architecture.md](architecture.md) (capas y layout) · [validation-rules.md](validation-rules.md) · [gedcom-mapping.md](gedcom-mapping.md)
+> Related documents: [data-model.md](data-model.md) (data model) · [storage.md](storage.md) (storage, ZIP and PWA) · [architecture.md](architecture.md) (layers and layout) · [validation-rules.md](validation-rules.md) · [gedcom-mapping.md](gedcom-mapping.md)
 
-## Filosofía
+## Philosophy
 
-> HTML, CSS y JavaScript puro. Sin frameworks, sin dependencias de runtime. El navegador es la plataforma.
+> Plain HTML, CSS and JavaScript. No frameworks, no runtime dependencies. The browser is the platform.
 
-- Si el navegador lo soporta de forma nativa, no se añade una librería para ello
-- Cero dependencias en producción
-- Las herramientas de desarrollo (build, lint, test) son opcionales y nunca llegan al usuario final
+- If the browser supports something natively, no library is added for it
+- Zero production dependencies
+- Development tools (build, lint, test) are optional and never reach the end user
 
-### Separación fundamental
+### Fundamental separation
 
-**Dónde se sirve la app ≠ dónde viven los datos.**
+**Where the app is served ≠ where the data lives.**
 
-La aplicación son unos cientos de KB de HTML, CSS y JS. Los datos familiares viven siempre en el disco del usuario y no atraviesan ningún servidor, se sirva la app desde donde se sirva. Esta separación permite cambiar el hosting sin tocar nada del modelo de datos.
-
----
-
-## Idioma
-
-**Regla:** todo lo que se publica va en inglés; lo que se queda en local puede ir en español.
-
-- **Código, comentarios, identificadores, campos del modelo, nombres de archivo y commits**: inglés, sin excepciones
-- **Documentación de diseño y contexto de IA**: español, ubicada en `docs/`, `AGENTS.md` y `.agents/`. Se versiona en el repositorio para que los asistentes de IA y colaboradores dispongan de las especificaciones completas de arquitectura y reglas.
-- **`README.md` es la excepción**: es el único documento que se sube, y va en inglés (`.gitignore` lo salva con `!README.md`)
-- **UI**: **inglés y español**, en `src/config/locales/`. La detección es por `navigator.language` y hay selector en la barra
-
-Los dos diccionarios tienen exactamente las mismas claves, y hay tests que lo comprueban: una clave ausente no lanza error, **renderiza `undefined` en la interfaz**, que es de lo que nadie se entera hasta que lo ve un usuario. El cambio de idioma **recarga la página**: varios componentes construyen sus etiquetas una sola vez, al crearse, así que repintar en caliente dejaría partes en el idioma anterior.
-
-La preferencia se guarda en `localStorage` — es una cadena corta, que es justo para lo que sirve. IndexedDB existe en este proyecto solo porque los handles de carpeta no son serializables, y ese motivo no aplica aquí.
+The application is a few hundred KB of HTML, CSS and JS. Family data always lives on the user's disk and never goes through any server, wherever the app is served from. This separation makes it possible to change hosting without touching anything in the data model.
 
 ---
 
-## Distribución de la aplicación
+## Language
+
+**Rule:** everything in the repository is in English.
+
+- **Code, comments, identifiers, model fields, filenames and commits**: English, no exceptions
+- **Design documentation and AI context**: English, located in `docs/`, `AGENTS.md` and `.agents/`. It is versioned in the repository so that AI assistants and collaborators have the complete architecture and rules specifications.
+- **`README.md`**: English as well, and published together with the rest of the documentation (`.gitignore` tracks `docs/`, `AGENTS.md` and `.agents/`). `README.es.md` is its Spanish translation, for Spanish-speaking visitors; both files must be updated together
+- **UI**: **English and Spanish**, in `src/config/locales/`. The language is detected through `navigator.language` and there is a selector in the bar
+
+Both dictionaries have exactly the same keys, and tests check it: a missing key does not throw an error, it **renders `undefined` in the interface**, which nobody notices until a user sees it. Switching language **reloads the page**: several components build their labels only once, when they are created, so repainting in place would leave parts in the previous language.
+
+The preference is stored in `localStorage` — it is a short string, which is exactly what it is meant for. IndexedDB exists in this project only because folder handles are not serializable, and that reason does not apply here.
+
+---
+
+## Application distribution
 
 ### GitHub Pages (MVP)
 
-- Solo aloja la aplicación. **Nunca contiene datos familiares**
-- El `base` de Vite se define como relativo (`'./'`), permitiendo que resuelva tanto en GitHub Pages (`/ances-tree/`) como en servidores locales autónomos
-- Hace falta un archivo `.nojekyll` en la raíz publicada, o GitHub ignora los directorios que empiezan por `_`
+- It only hosts the application. **It never contains family data**
+- Vite's `base` is set to relative (`'./'`), allowing it to resolve both on GitHub Pages (`/ances-tree/`) and on standalone local servers
+- A `.nojekyll` file is needed in the published root, or GitHub ignores directories starting with `_`
 
-### PWA desde el día uno
+### PWA from day one
 
-Se implementa service worker y manifest **desde el principio**, no como añadido posterior: retrofitarlo obliga a repensar rutas, caché y versionado.
+Service worker and manifest are implemented **from the start**, not added later: retrofitting them forces a rethink of routes, cache and versioning.
 
-- Tras la primera visita, la app funciona 100% offline
-- Instalable: icono propio, ventana sin barra de navegador
-- Elimina la dependencia de que GitHub Pages siga en pie
-- En Safari, además, tener la app instalada es lo que evita que el navegador borre los datos (ver [storage.md](storage.md))
+- After the first visit, the app works 100% offline
+- Installable: its own icon, window without a browser bar
+- Removes the dependency on GitHub Pages staying up
+- On Safari, having the app installed is also what prevents the browser from deleting the data (see [storage.md](storage.md))
 
-Ese último punto dejó de ser una nota al pie el día que la app pasó a funcionar en móvil. Cuando no hay selector de carpetas el archivo vive en el almacenamiento del navegador, y en iOS eso se descarta tras siete días sin visitas **salvo que esté en la pantalla de inicio**. Por eso `index.html` lleva `apple-touch-icon` y las metaetiquetas de aplicación web: ahí no son decoración, son lo que conserva los datos.
+That last point stopped being a footnote the day the app started working on mobile. When there is no folder picker, the file lives in browser storage, and on iOS that is discarded after seven days without visits **unless it is on the home screen**. That is why `index.html` carries `apple-touch-icon` and the web app meta tags: there they are not decoration, they are what preserves the data.
 
-### Dos modos de almacenamiento
+### Two storage modes
 
-La regla era «File System Access o no arranca». Se revirtió: hay un segundo backend sobre el origin private file system, y el detalle completo — por qué, qué costó, y cómo se le dice al usuario que esa copia es más frágil — está en [storage.md](storage.md#decisión-dos-modos-de-almacenamiento).
+The rule used to be "File System Access or it doesn't start". It was reverted: there is a second backend on top of the origin private file system, and the full detail — why, what it cost, and how the user is told that this copy is more fragile — is in [storage.md](storage.md#decision-two-storage-modes).
 
-Lo que importa aquí es la forma que tomó: **el modo se decide en un módulo (`storage/backend.js`) y se aplica en otro (`storage/file-dialog.js`), y nada más ramifica por él.** Todo lo que hay por debajo recibe un `FileSystemDirectoryHandle` y no sabe de dónde salió. Un `if (esMóvil)` esparcido por la capa de almacenamiento habría sido el mismo trabajo y una fuente permanente de divergencia entre plataformas.
+What matters here is the shape it took: **the mode is decided in one module (`storage/backend.js`) and applied in another (`storage/file-dialog.js`), and nothing else branches on it.** Everything below receives a `FileSystemDirectoryHandle` and does not know where it came from. An `if (isMobile)` scattered across the storage layer would have been the same work and a permanent source of divergence between platforms.
 
-### Lo que NO se hace: abrir el HTML con doble clic
+### What is NOT done: opening the HTML with a double click
 
-Servir la app por `file://` está descartado y conviene entender por qué, porque es una idea que reaparece:
+Serving the app through `file://` is ruled out, and it is worth understanding why, because it is an idea that keeps coming back:
 
-- **Los ES modules no cargan**: el origen es `null` y el navegador los bloquea por CORS. Eso mata la arquitectura de módulos y Web Components
-- **IndexedDB es poco fiable**: el comportamiento varía por navegador, y en Firefox cada archivo tiene un origen distinto
-- **No hay service worker**: requiere HTTPS o localhost
+- **ES modules do not load**: the origin is `null` and the browser blocks them through CORS. That kills the module and Web Components architecture
+- **IndexedDB is unreliable**: behavior varies by browser, and in Firefox each file has a different origin
+- **No service worker**: it requires HTTPS or localhost
 
-**Salida de emergencia documentada**: si algún día se necesita un único `.html` autocontenido para pasar a un familiar sin conexión, se genera un build especial con todo el CSS y JS inline como _script clásico_ (sin `import`). Se renuncia a módulos, service worker e IndexedDB fiable. Es un modo degradado, no el camino principal.
+**Documented emergency exit**: if a single self-contained `.html` is ever needed to hand to a relative offline, a special build is generated with all the CSS and JS inline as a _classic script_ (no `import`). Modules, service worker and reliable IndexedDB are given up. It is a degraded mode, not the main path.
 
 ---
 
 ## Web Components
 
-- Todos los componentes extienden `HTMLElement` y se registran con `customElements.define`
-- Los nombres siempre llevan guión (`person-card`, `tree-canvas`)
-- Las propiedades privadas usan `#` (private class fields, ES2022)
-- Los listeners se registran en `connectedCallback` y se limpian en `disconnectedCallback`
-- Se usa `attributeChangedCallback` + `observedAttributes` para reactividad declarativa
-- Shadow DOM solo cuando se necesita encapsulación real de estilos
+- All components extend `HTMLElement` and are registered with `customElements.define`
+- Names always contain a hyphen (`person-card`, `tree-canvas`)
+- Private properties use `#` (private class fields, ES2022)
+- Listeners are registered in `connectedCallback` and cleaned up in `disconnectedCallback`
+- `attributeChangedCallback` + `observedAttributes` are used for declarative reactivity
+- Shadow DOM only when real style encapsulation is needed
 
-### Estilos: archivos CSS reales + constructable stylesheets
+### Styles: real CSS files + constructable stylesheets
 
-Cada componente guarda sus estilos en un **archivo `.css` hermano** y lo importa con el `?inline` de Vite, que devuelve el texto del archivo en tiempo de compilación:
+Each component keeps its styles in a **sibling `.css` file** and imports it with Vite's `?inline`, which returns the file's text at build time:
 
 ```
 src/ui/components/person-card.js
@@ -102,140 +102,140 @@ class PersonCard extends HTMLElement {
 }
 ```
 
-**Por qué archivos y no template literals**: un `sheet(\`...\`)` es CSS-in-JS de facto, justo lo que la filosofía del proyecto descarta. Con archivos reales funcionan el resaltado de sintaxis, el autocompletado, Prettier y el linter de CSS. El `?inline` es una transformación de compilación: no añade nada al runtime.
+**Why files and not template literals**: a `sheet(\`...\`)` is de facto CSS-in-JS, exactly what the project's philosophy rules out. With real files, syntax highlighting, autocompletion, Prettier and the CSS linter work. `?inline` is a build-time transformation: it adds nothing to the runtime.
 
-### Banderas dibujadas en CSS
+### Flags drawn in CSS
 
-Windows **no incluye glifos de banderas** en `Segoe UI Emoji` — decisión deliberada de Microsoft para no posicionarse en disputas territoriales— así que `🇪🇸` sale como dos letras sueltas. Afecta a todas las aplicaciones del sistema, no solo a esta.
+Windows **does not include flag glyphs** in `Segoe UI Emoji` — a deliberate Microsoft decision to avoid taking a position in territorial disputes — so `🇪🇸` comes out as two loose letters. It affects every application on the system, not just this one.
 
-`src/ui/flag-support.js` lo **mide** (compara el ancho del par de indicadores contra el de las dos letras por separado) en lugar de mirar el user agent, así que el día que alguien instale una fuente con banderas, aparecen solas.
+`src/ui/flag-support.js` **measures** this (it compares the width of the indicator pair against that of the two letters separately) instead of looking at the user agent, so the day someone installs a font with flags, they appear on their own.
 
-Donde no hay glifos, `src/ui/styles/flags.css` dibuja la bandera con gradientes: la mayoría son bandas de color, que un `linear-gradient` reproduce exactamente. Dos límites deliberados:
+Where there are no glyphs, `src/ui/styles/flags.css` draws the flag with gradients: most are color bands, which a `linear-gradient` reproduces exactly. Two deliberate limits:
 
-- Las banderas con escudo, cantón o emblema se dibujan **solo con sus bandas**. España sin el escudo y México sin el águila siguen siendo España y México a catorce píxeles, y ambas existen como variantes oficiales sin armas
-- Lo que no se puede dibujar con honestidad —la Union Jack, Brasil, las cruces nórdicas descentradas— recibe el rectángulo neutro. **El código de dos letras siempre está**, así que una bandera ausente no cuesta nada; una equivocada sí
+- Flags with a coat of arms, canton or emblem are drawn **with their bands only**. Spain without the coat of arms and Mexico without the eagle are still Spain and Mexico at fourteen pixels, and both exist as official variants without arms
+- Whatever cannot be drawn honestly — the Union Jack, Brazil, off-center Nordic crosses — gets the neutral rectangle. **The two-letter code is always there**, so a missing flag costs nothing; a wrong one does
 
-Motivos, por orden de importancia:
+Reasons, in order of importance:
 
-1. **CSP**: un `<style>` dentro de un shadow root **sí** cuenta como estilo inline para `style-src`; el shadow root no lo exime. Las constructable stylesheets quedan fuera de esa comprobación
-2. **Rendimiento**: el CSSOM se parsea una vez y se comparte entre todas las instancias. Con cientos de tarjetas de persona en pantalla, la diferencia es medible
+1. **CSP**: a `<style>` inside a shadow root **does** count as inline style for `style-src`; the shadow root does not exempt it. Constructable stylesheets fall outside that check
+2. **Performance**: the CSSOM is parsed once and shared among all instances. With hundreds of person cards on screen, the difference is measurable
 
-### Comunicación entre componentes
+### Communication between components
 
-- **Un store central** (módulo singleton) es el propietario del estado. Los componentes nunca se hablan entre sí directamente
-- El store expone métodos de mutación y notifica cambios mediante `EventTarget`; los componentes se suscriben en `connectedCallback` y se dan de baja en `disconnectedCallback`
-- Los componentes emiten intención hacia arriba con `CustomEvent` (`bubbles: true, composed: true`); el estado siempre baja como propiedades o atributos
-- Motivo: el árbol se re-renderiza entero al cambiar de persona focal. Un modelo de propagación local entre componentes se vuelve incontrolable en ese escenario
+- **A central store** (singleton module) owns the state. Components never talk to each other directly
+- The store exposes mutation methods and notifies changes through `EventTarget`; components subscribe in `connectedCallback` and unsubscribe in `disconnectedCallback`
+- Components emit intent upward with `CustomEvent` (`bubbles: true, composed: true`); state always flows down as properties or attributes
+- Reason: the whole tree is re-rendered when the focal person changes. A local propagation model between components becomes unmanageable in that scenario
 
 ---
 
-## Tooling (solo desarrollo)
+## Tooling (development only)
 
-| Herramienta                     | Propósito                                                                        |
+| Tool                            | Purpose                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Vite**                        | Dev server y build, HMR rápido. `base: './'`, `build.target: 'esnext'`          |
-| **ESLint** + `eslint-plugin-wc` | Linting, con reglas específicas para Web Components                              |
-| **Prettier**                    | Formateo consistente                                                             |
-| **Web Test Runner**             | Tests en navegador real, pensado para Web Components                             |
+| **Vite**                        | Dev server and build, fast HMR. `base: './'`, `build.target: 'esnext'`          |
+| **ESLint** + `eslint-plugin-wc` | Linting, with rules specific to Web Components                                   |
+| **Prettier**                    | Consistent formatting                                                            |
+| **Web Test Runner**             | Tests in a real browser, designed for Web Components                             |
 
-### Dependencias de desarrollo
+### Development dependencies
 
-- Aunque no hay dependencias de runtime, las de desarrollo también son un vector de ataque (supply chain)
-- Fijar versiones exactas en `package.json` (`"vite": "5.2.1"`, no `"^5"`)
-- Revisar dependencias periódicamente con `pnpm audit`
-
----
-
-## Modelo de amenazas
-
-Antes de las medidas concretas, conviene ser explícito sobre de qué protege esta app y de qué no. Todo lo demás se deriva de aquí.
-
-**De qué protege:**
-
-- De que los datos familiares salgan del equipo del usuario: no hay backend, no hay telemetría, no hay red
-- De que otro usuario del mismo equipo lea los datos, **solo si** se activa el cifrado con passphrase
-- De contenido malicioso en los archivos importados (ZIP, GEDCOM, JSON, imágenes) que intente ejecutar código o escribir fuera de la carpeta del proyecto
-
-**De qué NO protege:**
-
-- **De un XSS en la propia app.** Si un atacante ejecuta JavaScript en el origen, tiene acceso a todo lo que la app tiene acceso. Ningún cifrado en el cliente arregla esto
-- De un equipo comprometido (keylogger, malware con acceso al disco)
-- De lo que el usuario haga con el ZIP exportado una vez sale de la app
-
-**Consecuencia práctica**: la CSP estricta y la disciplina con `innerHTML` son la defensa real. El cifrado es una capa secundaria, útil solo frente a la lectura del disco por terceros.
+- Although there are no runtime dependencies, development ones are also an attack vector (supply chain)
+- Pin exact versions in `package.json` (`"vite": "5.2.1"`, not `"^5"`)
+- Review dependencies periodically with `pnpm audit`
 
 ---
 
-## Seguridad
+## Threat model
+
+Before the concrete measures, it is worth being explicit about what this app protects against and what it does not. Everything else follows from here.
+
+**What it protects against:**
+
+- Family data leaving the user's machine: there is no backend, no telemetry, no network
+- Another user of the same machine reading the data, **only if** passphrase encryption is enabled
+- Malicious content in imported files (ZIP, GEDCOM, JSON, images) that tries to execute code or write outside the project folder
+
+**What it does NOT protect against:**
+
+- **An XSS in the app itself.** If an attacker runs JavaScript on the origin, they have access to everything the app has access to. No client-side encryption fixes this
+- A compromised machine (keylogger, malware with disk access)
+- What the user does with the exported ZIP once it leaves the app
+
+**Practical consequence**: the strict CSP and discipline with `innerHTML` are the real defense. Encryption is a secondary layer, useful only against disk reading by third parties.
+
+---
+
+## Security
 
 ### XSS (Cross-Site Scripting)
 
-- **Nunca usar `innerHTML` con datos externos o del usuario** — es la puerta de entrada más común a XSS
-- Para contenido dinámico, usar `textContent` o `createElement` + `appendChild`
-- Si `innerHTML` es inevitable (HTML controlado, como en `render()`), que el contenido sea siempre hardcoded o sanitizado
-- Sanitizador nativo cuando esté disponible: `Document.parseHTMLUnsafe` + `Sanitizer API` (aún experimental, vigilar soporte)
+- **Never use `innerHTML` with external or user data** — it is the most common entry point for XSS
+- For dynamic content, use `textContent` or `createElement` + `appendChild`
+- If `innerHTML` is unavoidable (controlled HTML, as in `render()`), the content must always be hardcoded or sanitized
+- Native sanitizer when available: `Document.parseHTMLUnsafe` + `Sanitizer API` (still experimental, watch support)
 
 ```js
-// ❌ Peligroso si `value` viene de fuera
+// ❌ Dangerous if `value` comes from outside
 el.innerHTML = `<span>${value}</span>`;
 
-// ✅ Seguro
+// ✅ Safe
 el.textContent = value;
 ```
 
-**En esta app, "datos externos" incluye todo**: nombres de persona, notas, nombres de archivo, valores leídos de IndexedDB y cualquier campo de un GEDCOM importado.
+**In this app, "external data" includes everything**: person names, notes, file names, values read from IndexedDB and any field of an imported GEDCOM.
 
-### Atributos y datos externos
+### Attributes and external data
 
-- Validar y escapar cualquier valor que venga de `getAttribute` antes de usarlo en el DOM
-- No confiar en `dataset` ni en parámetros de URL sin validación
+- Validate and escape any value coming from `getAttribute` before using it in the DOM
+- Do not trust `dataset` or URL parameters without validation
 
 ### Content Security Policy (CSP)
 
-**Limitación de partida**: con GitHub Pages no hay servidor propio, así que **no se pueden enviar cabeceras HTTP**. La CSP tiene que ir en un `<meta http-equiv="Content-Security-Policy">`, y eso implica renunciar a `frame-ancestors`, `report-uri` y `sandbox`, que solo funcionan como cabecera. Es una limitación asumida, no un olvido.
+**Starting limitation**: with GitHub Pages there is no server of our own, so **HTTP headers cannot be sent**. The CSP has to go in a `<meta http-equiv="Content-Security-Policy">`, which means giving up `frame-ancestors`, `report-uri` and `sandbox`, which only work as a header. It is an accepted limitation, not an oversight.
 
-- Evitar `unsafe-inline` en scripts: el build de Vite genera módulos como archivos externos, así que es alcanzable
-- Los estilos de componente van en constructable stylesheets, no en `<style>` inline (ver arriba)
-- `object-src 'none'` y `frame-src 'none'` salvo que se implemente la previsualización de PDF (ver más abajo)
-- `connect-src 'self'` — la app no habla con nadie
-- `img-src 'self' blob:` — las fotos se muestran desde blob URLs
+- Avoid `unsafe-inline` in scripts: the Vite build generates modules as external files, so it is achievable
+- Component styles go in constructable stylesheets, not inline `<style>` (see above)
+- `object-src 'none'` and `frame-src 'none'` unless PDF preview is implemented (see below)
+- `connect-src 'self'` — the app talks to no one
+- `img-src 'self' blob:` — photos are displayed from blob URLs
 
-### Subida de archivos
+### File upload
 
-- Validar tipo por **contenido real** (magic bytes), no por extensión ni por `file.type`: ambos los controla el usuario
-- Limitar tamaño antes de procesar: `if (file.size > MAX_BYTES) return`
-- Nunca renderizar el nombre del archivo directamente en el DOM con `innerHTML`
-- Los archivos se procesan en memoria (FileReader / ArrayBuffer), nunca se ejecutan
+- Validate the type by **actual content** (magic bytes), not by extension or `file.type`: both are controlled by the user
+- Limit size before processing: `if (file.size > MAX_BYTES) return`
+- Never render the file name directly in the DOM with `innerHTML`
+- Files are processed in memory (FileReader / ArrayBuffer), never executed
 
-### Fotografías: metadatos EXIF
+### Photographs: EXIF metadata
 
-Las fotos familiares llevan **geolocalización, fecha y modelo de dispositivo** en el EXIF. Si el ZIP se comparte, eso es PII que se filtra sin que el usuario lo sepa.
+Family photos carry **geolocation, date and device model** in the EXIF. If the ZIP is shared, that is PII leaked without the user knowing.
 
-- Al importar una foto se ofrece **limpiar los metadatos** (opción activada por defecto, reversible por el usuario)
-- La limpieza se hace re-codificando por `canvas` → `toBlob()`, que descarta todo el EXIF
-- **Ojo**: eso descarta también el flag de `orientation`. Hay que leer la orientación antes de re-codificar y aplicarla a la imagen resultante, o las fotos verticales salen giradas
-- La fecha de captura, si se extrae, se guarda en el modelo (`MediaObject.takenDate`) antes de limpiar: es dato genealógico útil que no debe perderse
+- When importing a photo, the user is offered to **strip the metadata** (option enabled by default, reversible by the user)
+- Stripping is done by re-encoding through `canvas` → `toBlob()`, which discards all the EXIF
+- **Careful**: that also discards the `orientation` flag. The orientation must be read before re-encoding and applied to the resulting image, or portrait photos come out rotated
+- The capture date, if extracted, is stored in the model (`MediaObject.takenDate`) before stripping: it is useful genealogical data that must not be lost
 
-### Documentos PDF
+### PDF documents
 
-Decisión: **en el MVP los PDF se almacenan y se descargan, no se previsualizan dentro de la app.**
+Decision: **in the MVP, PDFs are stored and downloaded, not previewed inside the app.**
 
-Previsualizar exige `<iframe>` o `<embed>` con una blob URL, lo que obliga a abrir `object-src` / `frame-src` en la CSP y a confiar en el visor de PDF del navegador con un archivo de origen desconocido. El beneficio no compensa en la primera versión. Si más adelante se implementa, se hace en una pestaña nueva sobre la blob URL, nunca embebido en la app.
+Previewing requires an `<iframe>` or `<embed>` with a blob URL, which forces opening `object-src` / `frame-src` in the CSP and trusting the browser's PDF viewer with a file of unknown origin. The benefit does not justify it in the first version. If it is implemented later, it is done in a new tab on the blob URL, never embedded in the app.
 
 ### ZIP
 
-**No se usa ninguna librería.** El formato se implementa a mano sobre APIs nativas:
+**No library is used.** The format is implemented by hand on top of native APIs:
 
-- Compresión y descompresión con `CompressionStream('deflate-raw')` y `DecompressionStream('deflate-raw')`
-- El resto es cabecera local, directorio central y CRC32 — unas 150 líneas
-- Motivo: JSZip sería una dependencia de runtime, prohibida por la filosofía del proyecto, y además superficie de ataque de terceros sobre datos personales
+- Compression and decompression with `CompressionStream('deflate-raw')` and `DecompressionStream('deflate-raw')`
+- The rest is local header, central directory and CRC32 — about 150 lines
+- Reason: JSZip would be a runtime dependency, forbidden by the project's philosophy, and also third-party attack surface over personal data
 
-Al **leer** un ZIP:
+When **reading** a ZIP:
 
-- Un ZIP puede contener rutas maliciosas tipo `../../etc/passwd` (Zip Slip). Con File System Access esto deja de ser teórico: se escribe en el disco real. **Normalizar y validar toda ruta** antes de usarla, y rechazar cualquier entrada que contenga `..`, empiece por `/` o tenga letra de unidad
-- Limitar número de entradas y tamaño descomprimido antes de extraer (un ZIP bomba descomprime GB desde pocos KB)
-- Rechazar entradas cuyo tamaño declarado no cuadre con el real
-- No ejecutar ni evaluar ningún contenido extraído
+- A ZIP can contain malicious paths like `../../etc/passwd` (Zip Slip). With File System Access this stops being theoretical: it writes to the real disk. **Normalize and validate every path** before using it, and reject any entry that contains `..`, starts with `/` or has a drive letter
+- Limit the number of entries and the uncompressed size before extracting (a ZIP bomb decompresses GBs from a few KB)
+- Reject entries whose declared size does not match the real one
+- Do not execute or evaluate any extracted content
 
 ```js
 const MAX_UNZIPPED = 5 * 1024 * 1024 * 1024; // 5 GB
@@ -250,76 +250,76 @@ function safeEntryPath(raw) {
 }
 ```
 
-Los detalles de estructura y escritura en streaming están en [storage.md](storage.md).
+Structure and streaming-write details are in [storage.md](storage.md).
 
-### Cifrado (opcional, no por defecto)
+### Encryption (optional, not by default)
 
-El enfoque de almacenamiento en carpeta real del usuario (ver [storage.md](storage.md)) **simplifica mucho este apartado**: si las fotos viven en una carpeta que el usuario abre con su visor, cifrarlas es contraproducente.
+The approach of storing in a real folder of the user (see [storage.md](storage.md)) **greatly simplifies this section**: if photos live in a folder that the user opens with their viewer, encrypting them is counterproductive.
 
-**Decisión:**
+**Decision:**
 
-- Las fotos y documentos se guardan **siempre en claro**. Son archivos del usuario, en su disco
-- El cifrado es **opcional y solo afecta a `family.json`** (el grafo, que es donde está la PII estructurada)
-- **Sin passphrase, no hay cifrado.** Una clave generada por la app y guardada junto a los datos no protege de nada relevante: contra XSS es inútil (el atacante llama a `decrypt()` igual) y contra lectura del disco solo añade un paso. Es honestidad, no dejadez
-- **Con passphrase**: `PBKDF2` con un número alto de iteraciones y salt aleatorio por proyecto → clave `AES-GCM` de 256 bits. IV único por operación con `crypto.getRandomValues`, nunca reutilizado con la misma clave
-- **Alternativa sin passphrase que sí aporta**: la extensión **`prf` de WebAuthn**, que deriva una clave estable del authenticator del dispositivo (biometría o PIN). Es la única forma de tener cifrado real sin que el usuario recuerde nada. Queda fuera del MVP pero el formato debe dejar hueco para ello
+- Photos and documents are **always stored in the clear**. They are the user's files, on their disk
+- Encryption is **optional and only affects `family.json`** (the graph, which is where the structured PII is)
+- **Without a passphrase, there is no encryption.** A key generated by the app and stored next to the data protects nothing relevant: against XSS it is useless (the attacker calls `decrypt()` all the same) and against disk reading it only adds a step. It is honesty, not negligence
+- **With a passphrase**: `PBKDF2` with a high iteration count and a random salt per project → 256-bit `AES-GCM` key. Unique IV per operation with `crypto.getRandomValues`, never reused with the same key
+- **Passphrase-free alternative that does add value**: the WebAuthn **`prf` extension**, which derives a stable key from the device's authenticator (biometrics or PIN). It is the only way to have real encryption without the user remembering anything. It is out of the MVP but the format must leave room for it
 
-Si en algún momento se maneja un `CryptoKey`:
+If a `CryptoKey` is ever handled:
 
 ```js
-// La clave se guarda como objeto CryptoKey en IndexedDB (es structured-cloneable),
-// NO como material exportado.
+// The key is stored as a CryptoKey object in IndexedDB (it is structured-cloneable),
+// NOT as exported material.
 const key = await crypto.subtle.deriveKey(
   { name: 'PBKDF2', salt, iterations: 600_000, hash: 'SHA-256' },
   passphraseKey,
   { name: 'AES-GCM', length: 256 },
-  false, // ⬅ NO extractable: ni un XSS puede exfiltrarla, solo usarla mientras la pestaña vive
+  false, // ⬅ NOT extractable: not even an XSS can exfiltrate it, only use it while the tab lives
   ['encrypt', 'decrypt'],
 );
 ```
 
-> Nunca `extractable: true`. Guardar el `CryptoKey` directamente es siempre preferible a guardar el material de la clave.
+> Never `extractable: true`. Storing the `CryptoKey` directly is always preferable to storing the key material.
 
-**Coherencia del ZIP**: si el proyecto tiene passphrase, el `family.json` dentro del ZIP va cifrado también. Un ZIP en claro exportado desde un proyecto cifrado rompería todo el modelo. Las fotos siguen en claro en ambos casos, y esto se le dice al usuario al exportar.
+**ZIP consistency**: if the project has a passphrase, the `family.json` inside the ZIP is encrypted too. A plaintext ZIP exported from an encrypted project would break the whole model. Photos remain in the clear in both cases, and the user is told this when exporting.
 
-### Importación de JSON
+### JSON import
 
-- Parsear siempre con `JSON.parse` dentro de un `try/catch`
-- **Validar contra el esquema** de [data-model.md](data-model.md) antes de usar nada: no asumir que los campos existen ni que son del tipo esperado
-- Comprobar `schemaVersion` y aplicar migración si procede; rechazar versiones futuras desconocidas
-- Si el JSON contiene strings que se van a renderizar, tratarlos como datos externos
-- Rechazar archivos que superen un tamaño máximo antes de parsear
+- Always parse with `JSON.parse` inside a `try/catch`
+- **Validate against the schema** in [data-model.md](data-model.md) before using anything: do not assume that fields exist or are of the expected type
+- Check `schemaVersion` and apply migration if needed; reject unknown future versions
+- If the JSON contains strings that will be rendered, treat them as external data
+- Reject files that exceed a maximum size before parsing
 
 ```js
-// ❌ Peligroso
+// ❌ Dangerous
 const data = JSON.parse(rawText);
 el.innerHTML = data.firstName;
 
-// ✅ Seguro
+// ✅ Safe
 const data = JSON.parse(rawText);
 if (typeof data.firstName !== 'string') throw new Error('Invalid format');
 el.textContent = data.firstName;
 ```
 
-### Importación de GEDCOM
+### GEDCOM import
 
-- GEDCOM (`.ged`) es texto plano con estructura por líneas: `LEVEL [XREF] TAG [VALUE]` — no usar `DOMParser` ni ningún parser de XML
-- Parser propio, escrito a mano
-- Validar línea a línea: nivel numérico, etiqueta en lista blanca, longitud máxima de valor
-- Los valores de `NAME`, `NOTE`, `ADDR`, etc. son texto libre y contienen PII: tratarlos como datos externos antes de renderizar
-- Rechazar archivos que superen un tamaño máximo antes de parsear
-- GEDCOM 5.5.1 es el más extendido; GEDCOM 7.0 exige UTF-8 — detectar y validar el encoding al leer
+- GEDCOM (`.ged`) is plain text with a line-based structure: `LEVEL [XREF] TAG [VALUE]` — do not use `DOMParser` or any XML parser
+- Custom parser, written by hand
+- Validate line by line: numeric level, allowlisted tag, maximum value length
+- The values of `NAME`, `NOTE`, `ADDR`, etc. are free text and contain PII: treat them as external data before rendering
+- Reject files that exceed a maximum size before parsing
+- GEDCOM 5.5.1 is the most widespread; GEDCOM 7.0 requires UTF-8 — detect and validate the encoding when reading
 
-**Los GEDCOM reales vienen sucios.** El parser debe:
+**Real-world GEDCOM files come dirty.** The parser must:
 
-- Aceptar `\r\n`, `\r` y `\n`, y saltar líneas en blanco
-- Descartar el BOM inicial si existe
-- Manejar `CONC` y `CONT`, cuyo valor puede empezar por espacios significativos
-- Aceptar `@@` como escape de `@` literal dentro de un valor
-- **Acumular errores en lugar de abortar en la primera línea mala**, y presentar al usuario un resumen con la opción de "importar con avisos" o cancelar
+- Accept `\r\n`, `\r` and `\n`, and skip blank lines
+- Discard the initial BOM if present
+- Handle `CONC` and `CONT`, whose value may start with significant spaces
+- Accept `@@` as an escape for a literal `@` inside a value
+- **Accumulate errors instead of aborting on the first bad line**, and present the user with a summary with the option to "import with warnings" or cancel
 
 ```js
-// LEVEL [XREF] TAG [VALUE] — el valor puede contener cualquier cosa, incluidos espacios iniciales
+// LEVEL [XREF] TAG [VALUE] — the value can contain anything, including leading spaces
 const GEDCOM_LINE = /^(\d+)\s+(?:(@[^@\s]+@)\s+)?([A-Za-z0-9_]+)(?:\s(.*))?$/;
 
 const errors = [];
@@ -330,22 +330,22 @@ for (const [i, line] of lines.entries()) {
 }
 ```
 
-### Gestión de memoria (datos personales)
+### Memory management (personal data)
 
-- Los datos viven en memoria mientras la app está abierta — minimizar el tiempo que permanecen referenciados
-- No guardar datos sensibles en variables de módulo o closures de larga vida más allá del store
-- Liberar referencias explícitamente cuando ya no se necesiten (`record = null`)
-- **Revocar las blob URL de fotos con `URL.revokeObjectURL()`** al desmontar el componente que las usa: si no, se acumulan y la pestaña se come cientos de MB navegando por el árbol
-- No loguear PII por consola ni en ningún sistema de logging
+- Data lives in memory while the app is open — minimize the time it stays referenced
+- Do not keep sensitive data in module variables or long-lived closures beyond the store
+- Release references explicitly when they are no longer needed (`record = null`)
+- **Revoke photo blob URLs with `URL.revokeObjectURL()`** when unmounting the component that uses them: otherwise they pile up and the tab eats hundreds of MB while browsing the tree
+- Do not log PII to the console or any logging system
 
 ---
 
-## Lo que no entra
+## What is out
 
-- React, Vue, Angular, Svelte o similares
-- Librerías de utilidades (lodash, etc.) — usar lo que ofrece el lenguaje
-- **Librerías de ZIP** (JSZip y similares) — se implementa sobre `CompressionStream`
-- **Librerías de parseo GEDCOM** — parser propio
-- CSS-in-JS ni preprocesadores — CSS nativo con custom properties (`--var`)
-- Polyfills salvo necesidad justificada y documentada aquí
-- Cualquier llamada de red en runtime
+- React, Vue, Angular, Svelte or similar
+- Utility libraries (lodash, etc.) — use what the language offers
+- **ZIP libraries** (JSZip and similar) — implemented on top of `CompressionStream`
+- **GEDCOM parsing libraries** — custom parser
+- CSS-in-JS or preprocessors — native CSS with custom properties (`--var`)
+- Polyfills unless justified and documented here
+- Any runtime network call

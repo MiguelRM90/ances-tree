@@ -1,29 +1,29 @@
-# Especificaciones y Documentación de Diseño — AncesTree
+# Specifications and Design Documentation — AncesTree
 
-Este directorio contiene las especificaciones técnicas completas, contratos de datos, decisiones de diseño y modelos del proyecto **ances-tree**.
+This directory contains the complete technical specifications, data contracts, design decisions, and models of the **ances-tree** project.
 
-Esta documentación está pensada para ser consultada tanto por desarrolladores humanos como por agentes de Inteligencia Artificial (Antigravity, Claude Code, Cursor, Copilot, etc.) antes de realizar modificaciones estructurales en el código.
-
----
-
-## Mapa de Documentos
-
-| Documento                                  | Descripción y Alcance                                                                                                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [vision.md](vision.md)                     | **Visión, Principios y Alcance**: Filosofía fundamental (_código público, datos privados, sin backend_), privacidad estricta y alcance del MVP.                     |
-| [architecture.md](architecture.md)         | **Arquitectura de Capas y Componentes**: Las 4 capas estrictas (UI → Store → Domain → Storage), estructura de carpetas y diseño del motor de maquetación del árbol. |
-| [data-model.md](data-model.md)             | **El Contrato de Datos**: Estructura de `Person`, `Union`, `ParentChild`, `Media`, modelo de fechas imprecisas (`DateValue`), rangos y severidades.                 |
-| [decisions.md](decisions.md)               | **Registro de Decisiones Técnicas**: Por qué Web Components puros sin dependencias de runtime, modelo de almacenamiento dual, CSP estricto y convenciones.          |
-| [storage.md](storage.md)                   | **Almacenamiento Físico y Persistencia**: Modos `DISK` (File System Access API) vs `BROWSER` (OPFS), estructura de la carpeta/ZIP, backups automáticos y seguridad. |
-| [validation-rules.md](validation-rules.md) | **Reglas de Validación**: Catálogo completo de reglas con identificador, severidad (`BLOCKED` vs `WARNING`) y casos de prueba.                                      |
-| [gedcom-mapping.md](gedcom-mapping.md)     | **Mapeo GEDCOM 5.5.1 / 7.0**: Transformación bidireccional, fidelidad, tratamiento de extensiones y qué datos se conservan o adaptan.                               |
+This documentation is meant to be consulted by both human developers and Artificial Intelligence agents (Antigravity, Claude Code, Cursor, Copilot, etc.) before making structural changes to the code.
 
 ---
 
-## Las Cinco Reglas Fundamentales de Arquitectura
+## Document Map
 
-1. **Cero dependencias de runtime**: Nada de frameworks, ni librerías auxiliares (ni lodash, ni JSZip, ni parsers GEDCOM externos). Todo se implementa usando las APIs nativas de la plataforma web.
-2. **`innerHTML` con datos de usuario está prohibido**: Todo dato (nombres, fechas, notas, GEDCOM importado, nombres de archivo) se trata como no confiable. Utilizar `textContent`, `createElement` o bindings seguros de plantillas.
-3. **Flujo unidireccional estricto de dependencias**: `UI → Store → Domain → Storage`. El módulo `domain/` es 100% puro y nunca importa DOM, IndexedDB ni el Store.
-4. **Casi todo es `WARNING`, no `ERROR`**: En genealogía histórica la incertidumbre es la norma. Solo se bloquean (`BLOCKED`/`FATAL`) las inconsistencias estructuralmente corruptoras (ciclos en el grafo, progenitores biológicos excesivos, etc.).
-5. **El texto original `raw` de una fecha nunca se modifica ni se pierde**: Los valores `earliest` y `latest` son derivados y recalculados a partir de `raw`.
+| Document                                   | Description and Scope                                                                                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [vision.md](vision.md)                     | **Vision, Principles, and Scope**: Core philosophy (_public code, private data, no backend_), strict privacy, and MVP scope.                                            |
+| [architecture.md](architecture.md)         | **Layered Architecture and Components**: The 4 strict layers (UI → Store → Domain → Storage), folder structure, and design of the tree layout engine.                   |
+| [data-model.md](data-model.md)             | **The Data Contract**: Structure of `Person`, `Union`, `ParentChild`, `Media`, the imprecise date model (`DateValue`), ranges, and severities.                          |
+| [decisions.md](decisions.md)               | **Technical Decision Log**: Why pure Web Components with no runtime dependencies, the dual storage model, strict CSP, and conventions.                                  |
+| [storage.md](storage.md)                   | **Physical Storage and Persistence**: `DISK` (File System Access API) vs `BROWSER` (OPFS) modes, folder/ZIP structure, automatic backups, and security.                 |
+| [validation-rules.md](validation-rules.md) | **Validation Rules**: Complete catalog of rules with identifier, severity (`BLOCKED` vs `WARNING`), and test cases.                                                     |
+| [gedcom-mapping.md](gedcom-mapping.md)     | **GEDCOM 5.5.1 / 7.0 Mapping**: Bidirectional transformation, fidelity, handling of extensions, and which data is preserved or adapted.                                 |
+
+---
+
+## The Five Fundamental Architecture Rules
+
+1. **Zero runtime dependencies**: No frameworks, no helper libraries (no lodash, no JSZip, no external GEDCOM parsers). Everything is implemented with native web platform APIs.
+2. **`innerHTML` with user data is forbidden**: All data (names, dates, notes, imported GEDCOM, file names) is treated as untrusted. Use `textContent`, `createElement`, or safe template bindings.
+3. **Strict one-way dependency flow**: `UI → Store → Domain → Storage`. The `domain/` module is 100% pure and never imports the DOM, IndexedDB, or the Store.
+4. **Almost everything is `WARNING`, not `ERROR`**: In historical genealogy, uncertainty is the norm. Only structurally corrupting inconsistencies are blocked (`BLOCKED`/`FATAL`): graph cycles, excess biological parents, etc.
+5. **The original `raw` text of a date is never modified or lost**: The `earliest` and `latest` values are derived and recalculated from `raw`.

@@ -1,5 +1,4 @@
-<!-- Written in English: this is the one document that ships with the code. The
-     working specification lives alongside it in Spanish and stays local. -->
+**English** | [Español](README.es.md)
 
 # AncesTree
 

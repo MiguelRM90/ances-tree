@@ -1,110 +1,110 @@
-# Almacenamiento
+# Storage
 
-> Documentos relacionados: [data-model.md](data-model.md) (qué se guarda) · [decisions.md](decisions.md) (decisiones técnicas y seguridad) · [architecture.md](architecture.md) (esquema de IndexedDB) · [gedcom-mapping.md](gedcom-mapping.md) · [vision.md](vision.md)
+> Related documents: [data-model.md](data-model.md) (what gets stored) · [decisions.md](decisions.md) (technical and security decisions) · [architecture.md](architecture.md) (IndexedDB schema) · [gedcom-mapping.md](gedcom-mapping.md) · [vision.md](vision.md)
 
-Este documento define **el contrato con el disco**: dónde viven los datos, cómo se escriben y cómo se transportan.
-
----
-
-## Principio
-
-> **Dónde se sirve la app ≠ dónde viven los datos.**
-
-La aplicación son unos cientos de KB servidos desde GitHub Pages y cacheados por el service worker. Los datos familiares viven **en una carpeta del disco del usuario** y no atraviesan ningún servidor.
+This document defines **the contract with the disk**: where the data lives, how it is written, and how it is transported.
 
 ---
 
-## Decisión: dos modos de almacenamiento
+## Principle
 
-> **Esta decisión se revirtió.** Durante la mayor parte del proyecto la regla fue «File System Access o no arranca», y móvil quedaba fuera por completo. Se documenta abajo por qué se cambió, igual que el motor de maquetación, porque el razonamiento original sigue siendo correcto — solo que no era la única opción disponible.
+> **Where the app is served ≠ where the data lives.**
 
-**Hay dos backends, y se elige por capacidad:**
+The application is a few hundred KB served from GitHub Pages and cached by the service worker. Family data lives **in a folder on the user's disk** and never passes through any server.
 
-| Modo | Dónde vive el archivo | Requiere |
+---
+
+## Decision: two storage modes
+
+> **This decision was reversed.** For most of the project the rule was "File System Access or it doesn't start", and mobile was left out entirely. The reason for the change is documented below, just like the layout engine, because the original reasoning is still correct — it just wasn't the only option available.
+
+**There are two backends, chosen by capability:**
+
+| Mode | Where the archive lives | Requires |
 |---|---|---|
-| `DISK` | Una carpeta que elige el usuario | `showDirectoryPicker`, `showSaveFilePicker`, `showOpenFilePicker` |
+| `DISK` | A folder chosen by the user | `showDirectoryPicker`, `showSaveFilePicker`, `showOpenFilePicker` |
 | `BROWSER` | Origin private file system | `navigator.storage.getDirectory` |
 
-**`DISK` gana siempre que esté disponible.** No son equivalentes y no se presentan como si lo fueran.
+**`DISK` always wins when available.** They are not equivalent and are not presented as if they were.
 
-### Por qué no bastaba con `DISK`
+### Why `DISK` alone was not enough
 
-El razonamiento original: 50.000 fotos × ~3 MB ≈ **150 GB**. Ninguna cuota de navegador cubre eso, y guardar el archivo familiar de alguien en un almacén que el navegador puede desalojar es inaceptable. Sigue siendo cierto.
+The original reasoning: 50,000 photos × ~3 MB ≈ **150 GB**. No browser quota covers that, and keeping someone's family archive in a store the browser can evict is unacceptable. This is still true.
 
-Lo que no era cierto es la conclusión de que por tanto no hubiera nada que ofrecer en un móvil. Un archivo familiar típico son cientos de fotos, no cincuenta mil; y el caso de uso que originó el proyecto — *«comprimir el ZIP y pasárselo a un familiar»* — se cumple mucho mejor si ese familiar puede abrirlo en el teléfono que tiene en la mano.
+What was not true was the conclusion that there was therefore nothing to offer on a phone. A typical family archive is hundreds of photos, not fifty thousand; and the use case that originated the project — *"zip it and send it to a relative"* — is served much better if that relative can open it on the phone in their hand.
 
-### Lo que hizo el cambio barato
+### What made the change cheap
 
-Nada por debajo de los selectores de fichero sabe en qué modo está. Los dos backends devuelven un `FileSystemDirectoryHandle`, y todo el almacenamiento estaba escrito contra esa interfaz: `getFileHandle`, `getDirectoryHandle`, `createWritable`, `entries`, `removeEntry`. `project-store.js`, `media.js` y `media-cache.js` no se tocaron.
+Nothing below the file pickers knows which mode it is in. Both backends return a `FileSystemDirectoryHandle`, and all the storage code was written against that interface: `getFileHandle`, `getDirectoryHandle`, `createWritable`, `entries`, `removeEntry`. `project-store.js`, `media.js`, and `media-cache.js` were not touched.
 
-El acoplamiento real eran **nueve llamadas** a los selectores, concentradas en cuatro archivos. Están ahora en dos módulos:
+The real coupling was **nine calls** to the pickers, concentrated in four files. They now live in two modules:
 
-- **`storage/backend.js`** — decide el modo. Nada más ramifica por él.
-- **`storage/file-dialog.js`** — `openFile`, `openFiles`, `saveFile`. File System Access donde existe; `<input type="file">` y `<a download>` donde no.
+- **`storage/backend.js`** — decides the mode. Nothing else branches on it.
+- **`storage/file-dialog.js`** — `openFile`, `openFiles`, `saveFile`. File System Access where it exists; `<input type="file">` and `<a download>` where it doesn't.
 
-### El fallback de guardado no acumula en memoria
+### The save fallback does not accumulate in memory
 
-`saveFile` sin diálogo de guardado **no** construye un Blob en RAM. Escribe en un fichero temporal dentro de OPFS con `createWritable()` y descarga *ése*, así que un ZIP de 2 GB con fotos se escribe igual en un móvil que en un escritorio: trozo a trozo. El coste es disco transitorio, no memoria.
+`saveFile` without a save dialog does **not** build a Blob in RAM. It writes to a temporary file inside OPFS with `createWritable()` and downloads *that*, so a 2 GB ZIP with photos is written the same way on a phone as on a desktop: chunk by chunk. The cost is transient disk, not memory.
 
-**El temporal no se borra al empezar la descarga.** Una blob URL sobre un fichero de OPFS es una referencia a esos bytes, no una copia; borrar el fichero rompe la descarga en curso. Se deja y se barre en la siguiente exportación, lo que además limpia detrás de una pestaña cerrada a medias. Hay un test que falla — con `TypeError: Failed to fetch` — si se invierte el orden.
+**The temporary file is not deleted when the download starts.** A blob URL over an OPFS file is a reference to those bytes, not a copy; deleting the file breaks the download in progress. It is left in place and swept on the next export, which also cleans up after a tab that was closed halfway. There is a test that fails — with `TypeError: Failed to fetch` — if the order is reversed.
 
-### Honestidad sobre la durabilidad
+### Honesty about durability
 
-En modo `BROWSER` la aplicación **dice dónde está el archivo**, más de una vez:
+In `BROWSER` mode the application **says where the archive is**, more than once:
 
-- Insignia permanente en la cabecera, en ámbar (no rojo: es una salvedad, no un fallo)
-- Aviso completo la primera vez que se abre un archivo en ese dispositivo, una sola vez, recordado en `localStorage`
-- El texto de confirmación de borrado dice que probablemente no hay otra copia
-- Al pulsar la insignia: estado de `persist()`, espacio ocupado y, si no se ha concedido, la sugerencia de añadirlo a la pantalla de inicio
+- Permanent badge in the header, in amber (not red: it is a caveat, not a failure)
+- Full notice the first time an archive is opened on that device, shown only once, remembered in `localStorage`
+- The deletion confirmation text says there is probably no other copy
+- Clicking the badge shows: `persist()` status, space used and, if it has not been granted, the suggestion to add it to the home screen
 
-Se pide `navigator.storage.persist()` al crear el primer archivo. Chromium lo concede en silencio a un sitio instalado o muy usado; Safari nunca lo ha concedido y descarta el almacenamiento tras siete días sin visitas salvo que esté en la pantalla de inicio. Por eso la respuesta **se informa, no se confía**: lo que de verdad conserva los datos es exportar un ZIP.
+`navigator.storage.persist()` is requested when the first archive is created. Chromium grants it silently to an installed or heavily used site; Safari has never granted it and discards storage after seven days without visits unless the site is on the home screen. That is why the answer is **reported, not trusted**: what truly preserves the data is exporting a ZIP.
 
-### Soporte
+### Support
 
-Verificado en agosto de 2026:
+Verified in August 2026:
 
-| Navegador | Modo |
+| Browser | Mode |
 |---|---|
-| Chrome / Edge / Opera / Brave / Vivaldi (escritorio) | `DISK` |
-| Firefox (escritorio) | `BROWSER` |
+| Chrome / Edge / Opera / Brave / Vivaldi (desktop) | `DISK` |
+| Firefox (desktop) | `BROWSER` |
 | Safari (macOS) | `BROWSER` |
-| Chrome en Android, Safari en iOS | `BROWSER` |
+| Chrome on Android, Safari on iOS | `BROWSER` |
 
-Falta un requisito más allá del backend: **`FileSystemFileHandle.createWritable()`**. Safari tuvo OPFS durante dos años antes de poder escribir en streaming fuera de un worker, y sin eso habría que acumular en memoria cada foto y cada exportación. Se comprueba sobre el prototipo, sin escribir nada.
+There is one more requirement beyond the backend: **`FileSystemFileHandle.createWritable()`**. Safari had OPFS for two years before it could write in streaming mode outside a worker, and without that every photo and every export would have to be accumulated in memory. It is checked on the prototype, without writing anything.
 
-Si falta cualquiera de las dos cosas, se muestra la **pantalla de requisitos** y no se arranca. Una app de archivo familiar que a veces pierde los datos sigue siendo peor que una que no abre.
+If either of the two is missing, the **requirements screen** is shown and the app does not start. A family archive app that sometimes loses data is still worse than one that doesn't open.
 
-La detección es siempre **por capacidad, nunca por user-agent**.
+Detection is always **by capability, never by user-agent**.
 
-### Lo que sí desaparece del proyecto
+### What does disappear from the project
 
-- Guardar el grafo en IndexedDB, con lo que el cifrado deja de chocar con los índices
-- Un segundo modelo de datos: `BROWSER` usa exactamente la misma estructura de carpeta
-
----
-
-## Arquitectura: todo en la carpeta
-
-**El proyecto entero es una carpeta del disco.** No hay copia del grafo en el navegador.
-
-- `family.json` se lee al abrir, vive en memoria mientras se trabaja y se reescribe al guardar
-- Las fotos y documentos se escriben una vez, al importarlos, y no se vuelven a tocar
-- **IndexedDB guarda exactamente dos cosas**: la lista de proyectos recientes y sus `FileSystemDirectoryHandle`. Nunca datos familiares. No puede sustituirse por `localStorage`, porque un handle no es serializable a texto — el razonamiento está en [architecture.md](architecture.md#por-qué-indexeddb-y-no-localstorage)
-- **`family.ged` se regenera** junto a `family.json` en cada exportación, para que la carpeta lleve siempre una copia legible por otros programas
-
-Esto es lo que hace que el usuario pueda respaldar, sincronizar y compartir su archivo con las herramientas que ya usa, sin pedirle permiso a la aplicación.
+- Storing the graph in IndexedDB, which means encryption no longer collides with the indexes
+- A second data model: `BROWSER` uses exactly the same folder structure
 
 ---
 
-## Estructura de la carpeta de proyecto
+## Architecture: everything in the folder
 
-**Idéntica a la del ZIP.** Es la misma cosa: comprimir la carpeta con el explorador de archivos produce un ZIP válido para la app, y descomprimir un ZIP exportado produce una carpeta de proyecto que se abre directamente.
+**The entire project is a folder on disk.** There is no copy of the graph in the browser.
+
+- `family.json` is read on open, lives in memory while working, and is rewritten on save
+- Photos and documents are written once, when imported, and never touched again
+- **IndexedDB stores exactly two things**: the list of recent projects and their `FileSystemDirectoryHandle`s. Never family data. It cannot be replaced by `localStorage`, because a handle is not serializable to text — the reasoning is in [architecture.md](architecture.md#why-indexeddb-and-not-localstorage)
+- **`family.ged` is regenerated** alongside `family.json` on every export, so the folder always carries a copy readable by other programs
+
+This is what lets the user back up, sync, and share their archive with the tools they already use, without asking the application for permission.
+
+---
+
+## Project folder structure
+
+**Identical to the ZIP's.** It is the same thing: compressing the folder with the file explorer produces a ZIP that is valid for the app, and unzipping an exported ZIP produces a project folder that opens directly.
 
 ```
-FamiliaApellido1/
-├─ family.json           Grafo completo (ver data-model.md)
-├─ manifest.json         Metadatos del proyecto e integridad
-├─ family.ged            GEDCOM (generado en export; fase 2)
+FamilySurname1/
+├─ family.json           Full graph (see data-model.md)
+├─ manifest.json         Project metadata and integrity
+├─ family.ged            GEDCOM (generated on export; phase 2)
 ├─ photos/
 │  ├─ a3/
 │  │  └─ a3f2c1...e9.jpg
@@ -117,18 +117,18 @@ FamiliaApellido1/
    └─ family-2026-08-15T103000.json
 ```
 
-### Nombres por hash y sharding
+### Hash-based names and sharding
 
-Los binarios se nombran por el **SHA-256 de su contenido**, repartidos en subcarpetas por los dos primeros caracteres del hash.
+Binaries are named by the **SHA-256 of their content**, spread across subfolders by the first two characters of the hash.
 
-Cuatro razones, todas prácticas:
+Four reasons, all practical:
 
-1. **Deduplicación gratis**: la misma foto añadida dos veces ocupa una vez
-2. **Sin colisiones de nombre**: dos `abuelo.jpg` distintos conviven sin renombrados raros
-3. **Neutraliza nombres maliciosos**: el nombre de archivo del usuario nunca llega al sistema de archivos
-4. **Rendimiento**: una carpeta con 50.000 entradas tarda un mundo en listarse; el sharding la reparte en 256
+1. **Free deduplication**: the same photo added twice takes up space once
+2. **No name collisions**: two different `grandfather.jpg` files coexist without awkward renaming
+3. **Neutralizes malicious names**: the user's file name never reaches the file system
+4. **Performance**: a folder with 50,000 entries takes forever to list; sharding spreads it across 256
 
-El nombre original se conserva en `MediaObject.caption`, que es donde tiene sentido: es información, no una ruta.
+The original name is kept in `MediaObject.caption`, which is where it makes sense: it is information, not a path.
 
 ### `manifest.json`
 
@@ -145,176 +145,176 @@ El nombre original se conserva en `MediaObject.caption`, que es donde tiene sent
 }
 ```
 
-Se lee **antes** que nada al abrir o importar: permite validar la versión, avisar del tamaño y detectar que una carpeta o un ZIP no son de esta app sin leer nada más.
+It is read **before** anything else when opening or importing: it allows validating the version, warning about the size, and detecting that a folder or ZIP does not belong to this app without reading anything else.
 
 ---
 
-## Recordar la carpeta entre sesiones
+## Remembering the folder between sessions
 
-Un `FileSystemDirectoryHandle` es **structured-cloneable**, así que se guarda en IndexedDB y se recupera en la siguiente sesión. El usuario no tiene que buscar su carpeta cada vez.
+A `FileSystemDirectoryHandle` is **structured-cloneable**, so it is stored in IndexedDB and retrieved in the next session. The user does not have to look for their folder every time.
 
 ```js
-// Al abrir un proyecto
+// When opening a project
 await idb.put('handles', { key: projectId, handle: dirHandle });
 
-// Al arrancar
+// On startup
 const saved = await idb.get('handles', lastProjectId);
 if (saved) {
   let perm = await saved.handle.queryPermission({ mode: 'readwrite' });
   if (perm === 'prompt') {
-    // requestPermission() exige un gesto del usuario: se lanza desde el botón
-    // "Reabrir <proyecto>", nunca automáticamente al cargar.
+    // requestPermission() requires a user gesture: it is triggered from the
+    // "Reopen <project>" button, never automatically on load.
     perm = await saved.handle.requestPermission({ mode: 'readwrite' });
   }
   if (perm === 'granted') open(saved.handle);
 }
 ```
 
-**Casos que hay que manejar:**
+**Cases to handle:**
 
-| Situación | Comportamiento |
+| Situation | Behavior |
 |---|---|
-| Permiso denegado | Se ofrece elegir la carpeta de nuevo. No se pierde nada |
-| Carpeta movida o borrada | El handle falla al leer. Mensaje claro + selector de carpeta |
-| Carpeta modificada por fuera | Se recarga desde disco al reabrir. No se intenta fusionar |
-| Varias pestañas sobre el mismo proyecto | Se detecta con un lock en `manifest.json` y la segunda abre en solo lectura |
+| Permission denied | The user is offered to choose the folder again. Nothing is lost |
+| Folder moved or deleted | The handle fails on read. Clear message + folder picker |
+| Folder modified externally | Reloaded from disk on reopen. No merge is attempted |
+| Several tabs on the same project | Detected with a lock on `manifest.json`, and the second one opens read-only |
 
 ---
 
-## Escritura y guardado automático
+## Writing and autosave
 
 ### `family.json`
 
-Se reescribe **entero** en cada guardado. Es pequeño —unos MB en el peor caso realista— y la escritura completa evita toda una clase de bugs de consistencia parcial.
+It is rewritten **in full** on every save. It is small —a few MB in the worst realistic case— and full writes avoid a whole class of partial-consistency bugs.
 
-- **Debounce de ~2 segundos** tras el último cambio, más un guardado forzado en `visibilitychange`
-- `createWritable()` escribe en un archivo temporal y hace commit al llamar a `close()`, así que un fallo a media escritura no corrompe el archivo existente
-- Antes de sobrescribir se rota una copia a `backups/`, conservando las últimas `BACKUP_COPIES`
+- **Debounce of ~2 seconds** after the last change, plus a forced save on `visibilitychange`
+- `createWritable()` writes to a temporary file and commits on `close()`, so a failure mid-write does not corrupt the existing file
+- Before overwriting, a copy is rotated into `backups/`, keeping the last `BACKUP_COPIES`
 
 ```js
 const writable = await fileHandle.createWritable();
 await writable.write(JSON.stringify(data, null, 2));
-await writable.close(); // commit atómico
+await writable.close(); // atomic commit
 ```
 
-### Binarios
+### Binaries
 
-Se escriben una sola vez, al importarlos, y no se modifican nunca: son inmutables por definición, su nombre es su hash. Borrar un `MediaObject` marca el archivo como huérfano; la limpieza real se hace en una operación explícita de mantenimiento, nunca de forma automática.
+They are written only once, when imported, and never modified: they are immutable by definition, their name is their hash. Deleting a `MediaObject` marks the file as orphaned; actual cleanup is done in an explicit maintenance operation, never automatically.
 
-### Pipeline de importación de una foto
+### Photo import pipeline
 
-1. Comprobar tamaño contra el máximo **antes de leer nada**
-2. Validar tipo real por **magic bytes**, no por extensión ni `file.type`
-3. Extraer `takenDate` y orientación del EXIF
-4. **Limpiar EXIF** re-codificando por `canvas` → `toBlob()`, reaplicando la orientación leída en el paso anterior (si no, las fotos verticales salen giradas)
-5. Calcular SHA-256 del resultado con `crypto.subtle.digest`
-6. Si el hash ya existe, no se escribe nada: se reutiliza el `MediaObject`
-7. Escribir en `photos/<xx>/<hash>.<ext>` (conservando `.jpg`, `.png` o `.webp`) y crear el `MediaObject`
+1. Check size against the maximum **before reading anything**
+2. Validate the real type by **magic bytes**, not by extension or `file.type`
+3. Extract `takenDate` and orientation from EXIF
+4. **Strip EXIF** by re-encoding through `canvas` → `toBlob()`, reapplying the orientation read in the previous step (otherwise portrait photos come out rotated)
+5. Compute the SHA-256 of the result with `crypto.subtle.digest`
+6. If the hash already exists, nothing is written: the `MediaObject` is reused
+7. Write to `photos/<xx>/<hash>.<ext>` (keeping `.jpg`, `.png`, or `.webp`) and create the `MediaObject`
 
-El porqué del paso 4 está en [decisions.md](decisions.md#fotografías-metadatos-exif): las fotos familiares llevan geolocalización.
+The reason for step 4 is in [decisions.md](decisions.md#photographs-exif-metadata): family photos carry geolocation.
 
-### Pipeline de importación de un documento
+### Document import pipeline
 
-1. Comprobar tamaño contra `MAX_DOCUMENT_BYTES` (100 MB) **antes de leer nada**
-2. Validar tipo real comprobando firmas binarias (%PDF, contenedores zip de Office/OpenDocument, OLE2, RTF, texto plano sin bytes nulos) y extensión permitida
-3. Calcular SHA-256 del archivo con `crypto.subtle.digest`
-4. Si el hash ya existe, no se escribe nada: se reutiliza el `MediaObject`
-5. Escribir en `documents/<xx>/<hash>.<ext>` y crear el `MediaObject` (`kind: 'DOCUMENT'`), guardando el nombre original en `caption`
+1. Check size against `MAX_DOCUMENT_BYTES` (100 MB) **before reading anything**
+2. Validate the real type by checking binary signatures (%PDF, Office/OpenDocument zip containers, OLE2, RTF, plain text without null bytes) and allowed extension
+3. Compute the SHA-256 of the file with `crypto.subtle.digest`
+4. If the hash already exists, nothing is written: the `MediaObject` is reused
+5. Write to `documents/<xx>/<hash>.<ext>` and create the `MediaObject` (`kind: 'DOCUMENT'`), keeping the original name in `caption`
 
 ---
 
 ## ZIP
 
-Con la carpeta en disco, el ZIP deja de ser la persistencia y pasa a ser **el mecanismo de compartir**: un solo archivo que enviar a un familiar.
+With the folder on disk, the ZIP stops being the persistence and becomes **the sharing mechanism**: a single file to send to a relative.
 
-De hecho, comprimir la carpeta con el explorador de archivos produce un ZIP igual de válido. El export de la app añade el `manifest.json` actualizado, el GEDCOM y la verificación de integridad.
+In fact, compressing the folder with the file explorer produces an equally valid ZIP. The app's export adds the updated `manifest.json`, the GEDCOM, and the integrity check.
 
-### Sin librerías
+### No libraries
 
-Se implementa sobre APIs nativas, según [decisions.md](decisions.md#zip):
+It is implemented on native APIs, per [decisions.md](decisions.md#zip):
 
 - `CompressionStream('deflate-raw')` / `DecompressionStream('deflate-raw')`
-- Cabecera local, directorio central y CRC32 propios
-- **ZIP64** siempre que el total supere 4 GB o 65.535 entradas, que con decenas de miles de fotos es el caso normal, no la excepción
+- Own local header, central directory, and CRC32
+- **ZIP64** whenever the total exceeds 4 GB or 65,535 entries, which with tens of thousands of photos is the normal case, not the exception
 
-### Escritura en streaming
+### Streaming write
 
-El ZIP se escribe **directamente al disco a medida que se genera**, así que el tamaño del proyecto no está limitado por la RAM:
+The ZIP is written **directly to disk as it is generated**, so the project size is not limited by RAM:
 
 ```js
 const handle = await showSaveFilePicker({ suggestedName: 'FamiliaApellido1.zip' });
 const writable = await handle.createWritable();
-// se van escribiendo entradas conforme se comprimen; nunca hay un Blob completo en memoria
+// entries are written as they are compressed; there is never a complete Blob in memory
 ```
 
-### Importación
+### Import
 
-1. Leer el **directorio central** primero: da la lista de entradas y sus tamaños sin descomprimir nada
-2. Validar contra `MAX_ZIP_ENTRIES` y `MAX_UNZIPPED_BYTES` antes de tocar el contenido
-3. Normalizar **toda** ruta con `safeEntryPath()` — se escribe en el disco real, así que Zip Slip no es teórico
-4. Leer y validar `manifest.json` y `schemaVersion`
-5. **Verificar el CRC-32 de cada entrada** mientras se escribe a disco; reportar discrepancias como aviso, sin abortar el import
-6. Elegir estrategia de fusión
+1. Read the **central directory** first: it gives the list of entries and their sizes without decompressing anything
+2. Validate against `MAX_ZIP_ENTRIES` and `MAX_UNZIPPED_BYTES` before touching the content
+3. Normalize **every** path with `safeEntryPath()` — it writes to the real disk, so Zip Slip is not theoretical
+4. Read and validate `manifest.json` and `schemaVersion`
+5. **Verify the CRC-32 of each entry** while writing to disk; report discrepancies as a warning, without aborting the import
+6. Choose a merge strategy
 
-> **Cambio respecto al diseño inicial**: la verificación de integridad se hace con el **CRC-32 que el propio formato ZIP ya lleva por entrada**, no re-calculando el SHA-256 contra el nombre del archivo. Motivo técnico: WebCrypto **no tiene SHA-256 incremental**, así que hashear obligaría a cargar cada archivo entero en memoria; el CRC sí se puede calcular en streaming, de modo que una foto de 50 MB se verifica sin ocupar RAM. Además el CRC cubre el riesgo real —corrupción del archivo— mientras que el SHA contra el nombre cubría uno mucho menor: que alguien renombrase los ficheros a mano.
+> **Change from the initial design**: integrity verification uses the **CRC-32 that the ZIP format itself already carries per entry**, rather than recomputing the SHA-256 against the file name. Technical reason: WebCrypto **has no incremental SHA-256**, so hashing would force loading each whole file into memory; the CRC can be computed in streaming, so a 50 MB photo is verified without taking up RAM. Moreover, the CRC covers the real risk —file corruption— while the SHA against the name covered a much smaller one: someone renaming files by hand.
 
 ---
 
-## Fusión al importar
+## Merge on import
 
-Importar sobre un proyecto que ya tiene datos es de las cosas que más cuesta retrofitar, así que se decide ahora. La app **siempre pregunta**, nunca decide sola:
+Importing over a project that already has data is one of the things that is hardest to retrofit, so it is decided now. The app **always asks**, never decides on its own:
 
-| Estrategia | Estado | Comportamiento |
+| Strategy | Status | Behavior |
 |---|---|---|
-| **Abrir como proyecto nuevo** | ✅ Implementada | Por defecto. Se extrae a una carpeta vacía que elige el usuario y no toca nada de lo existente |
-| **Fusionar** | ✅ Implementada | Se añade lo que no existe, cotejando por `id`. **En conflicto gana la versión local.** Primero se copian los binarios que faltan, después se actualiza el grafo, para que no haya ningún instante con un `MediaObject` apuntando a un archivo inexistente |
-| **Reemplazar** | ❌ Descartada | Ver abajo |
+| **Open as new project** | ✅ Implemented | Default. Extracted to an empty folder chosen by the user and touches nothing existing |
+| **Merge** | ✅ Implemented | Adds what doesn't exist, matching by `id`. **On conflict the local version wins.** Missing binaries are copied first, then the graph is updated, so there is never a moment with a `MediaObject` pointing to a nonexistent file |
+| **Replace** | ❌ Discarded | See below |
 
-**Por qué se descarta "Reemplazar"**: es la única destructiva, necesitaba un flujo de confirmación propio, y es equivalente a "abrir como proyecto nuevo" seguido de borrar la carpeta vieja desde el explorador — con la ventaja de que así el usuario ve lo que borra. No aporta nada que no se pueda hacer mejor fuera de la app.
+**Why "Replace" is discarded**: it is the only destructive one, it needed its own confirmation flow, and it is equivalent to "open as new project" followed by deleting the old folder from the file explorer — with the advantage that this way the user sees what they are deleting. It adds nothing that cannot be done better outside the app.
 
-**Sobre el criterio de conflicto en la fusión**: gana la copia local. Sobrescribir una edición que el usuario acaba de hacer aquí con una copia más vieja del ZIP de otra persona sería la sorpresa peor de las dos.
+**On the conflict criterion in the merge**: the local copy wins. Overwriting an edit the user has just made here with an older copy from someone else's ZIP would be the worse surprise of the two.
 
-Sobre la fusión: los `id` son UUID, así que dos proyectos creados por separado **nunca coinciden** aunque describan a la misma persona. La fusión por `id` solo resuelve el caso real —el mismo proyecto que ha divergido entre dos equipos— y eso es exactamente lo que necesita una familia que se pasa el ZIP.
+On merging: `id`s are UUIDs, so two projects created separately **never coincide** even if they describe the same person. Merging by `id` only solves the real case —the same project that has diverged between two machines— and that is exactly what a family passing the ZIP around needs.
 
-**La detección de duplicados por similitud de nombre y fechas queda fuera del MVP.** Es un problema de calidad de datos, no de almacenamiento, y merece su propia interfaz de revisión.
-
----
-
-## PWA y service worker
-
-Se implementa desde el principio (ver [decisions.md](decisions.md#pwa-desde-el-día-uno)).
-
-- **El service worker cachea únicamente el app shell**: HTML, CSS, JS, iconos. **Nunca datos del usuario** — los datos están en el disco, no en la caché
-- Estrategia *cache-first* para los assets versionados, *network-first* para el `index.html`
-- El nombre de la caché lleva la versión del build; al activarse una versión nueva se borran las anteriores
-- Cuando hay una versión nueva se avisa al usuario y se recarga **solo con su consentimiento**: recargar durante una edición no guardada es inaceptable
-- El `manifest.webmanifest` habilita la instalación, que da ventana propia e icono
+**Duplicate detection by name and date similarity is out of the MVP.** It is a data quality problem, not a storage one, and deserves its own review interface.
 
 ---
 
-## Cifrado
+## PWA and service worker
 
-Recogido de [decisions.md](decisions.md#cifrado-opcional-no-por-defecto), en lo que afecta al disco:
+Implemented from the start (see [decisions.md](decisions.md#pwa-from-day-one)).
 
-- **Los binarios se guardan siempre en claro.** Son archivos del usuario, en su carpeta, que abre con su visor de fotos
-- El cifrado es **opcional**, se activa con passphrase y **solo afecta a `family.json`**
-- Si el proyecto está cifrado, el `family.json` dentro del ZIP también lo va, y `manifest.json` lo declara con `"encrypted": true`. El manifest nunca se cifra: hay que poder leerlo para saber qué se está abriendo
-- El salt de PBKDF2 se guarda en `manifest.json`. No es secreto
-- Al trabajar con la carpeta en disco, el grafo vive descifrado en memoria y se cifra solo al escribir. **No hay conflicto con índices de base de datos**, porque no hay base de datos: otra simplificación que viene de la decisión de arriba
+- **The service worker caches only the app shell**: HTML, CSS, JS, icons. **Never user data** — the data is on disk, not in the cache
+- *Cache-first* strategy for versioned assets, *network-first* for `index.html`
+- The cache name carries the build version; when a new version activates, the previous ones are deleted
+- When there is a new version the user is notified and the app reloads **only with their consent**: reloading during an unsaved edit is unacceptable
+- `manifest.webmanifest` enables installation, which gives a dedicated window and icon
 
 ---
 
-## Límites configurables
+## Encryption
 
-Todos en `src/config/limits.js`, no dispersos por el código:
+Taken from [decisions.md](decisions.md#encryption-optional-not-by-default), as far as it affects the disk:
 
-| Constante | Valor inicial |
+- **Binaries are always stored in the clear.** They are the user's files, in their folder, opened with their photo viewer
+- Encryption is **optional**, enabled with a passphrase, and **only affects `family.json`**
+- If the project is encrypted, the `family.json` inside the ZIP is too, and `manifest.json` declares it with `"encrypted": true`. The manifest is never encrypted: it must be readable to know what is being opened
+- The PBKDF2 salt is stored in `manifest.json`. It is not secret
+- When working with the folder on disk, the graph lives decrypted in memory and is encrypted only on write. **There is no conflict with database indexes**, because there is no database: another simplification that comes from the decision above
+
+---
+
+## Configurable limits
+
+All in `src/config/limits.js`, not scattered through the code:
+
+| Constant | Initial value |
 |---|---|
 | `MAX_PHOTO_BYTES` | 50 MB |
 | `MAX_DOCUMENT_BYTES` | 100 MB |
 | `MAX_JSON_BYTES` | 200 MB |
 | `MAX_GEDCOM_BYTES` | 200 MB |
 | `MAX_UNZIPPED_BYTES` | 5 GB |
-| `MAX_ZIP_ENTRIES` | 100.000 |
-| `AUTOSAVE_DEBOUNCE_MS` | 2.000 |
+| `MAX_ZIP_ENTRIES` | 100,000 |
+| `AUTOSAVE_DEBOUNCE_MS` | 2,000 |
 | `BACKUP_COPIES` | 10 |
