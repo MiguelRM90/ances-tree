@@ -4,8 +4,17 @@
  */
 
 import { ParentType, MediaRole, MediaKind } from '../model/factories.js';
+import { en } from '../../config/locales/en.js';
+import { es } from '../../config/locales/es.js';
 
 const EMPTY = Object.freeze([]);
+
+const dictionaryFor = (locale) =>
+  String(locale ?? '')
+    .slice(0, 2)
+    .toLowerCase() === 'es'
+    ? es
+    : en;
 
 export const parentLinksOf = (g, personId) => g.parentsByChild.get(personId) ?? EMPTY;
 export const childLinksOf = (g, personId) => g.childrenByParent.get(personId) ?? EMPTY;
@@ -168,7 +177,7 @@ export function portraitOf(g, personId) {
 const roleRank = (item, personId) =>
   item.links.some((link) => link.targetId === personId && link.role === MediaRole.PORTRAIT) ? 0 : 1;
 
-export function displayName(person) {
+export function displayName(person, locale) {
   if (!person) return '';
 
   const name = [person.firstName, person.lastName, person.secondLastName]
@@ -176,7 +185,8 @@ export function displayName(person) {
     .join(' ');
 
   if (name !== '') return name;
-  return person.isPlaceholder ? 'Unknown' : 'Unnamed';
+  const dict = dictionaryFor(locale).person;
+  return person.isPlaceholder ? dict.unknown : dict.unnamed;
 }
 
 /** Both surnames, for the places that care about the family line rather than

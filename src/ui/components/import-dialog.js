@@ -6,7 +6,7 @@
  * choice is made with the numbers in view rather than blind.
  */
 
-import { el, emit } from '../dom.js';
+import { el, emit, formatBytes } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './import-dialog.css?inline';
 import { S } from '../../config/strings.js';
@@ -101,17 +101,6 @@ function choiceButton(label, hint) {
       el('span', { class: 'hint', text: hint }),
     ],
   });
-}
-
-function formatBytes(bytes) {
-  const units = ['B', 'kB', 'MB', 'GB'];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
 customElements.define('import-dialog', ImportDialog);

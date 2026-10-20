@@ -285,7 +285,7 @@ describe('photos in browser storage', function () {
 
     const { media, reused } = await importPhoto(dirHandle, file, []);
     expect(reused).to.equal(false);
-    expect(media.path).to.match(/^photos\/[0-9a-f]{2}\/[0-9a-f]{64}\.jpg$/);
+    expect(media.path).to.match(/^photos\/[0-9a-f]{2}\/[0-9a-f]{64}\.png$/);
 
     const back = await readMediaFile(dirHandle, media.path);
     expect(back.size).to.be.greaterThan(0);

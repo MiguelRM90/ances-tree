@@ -316,12 +316,23 @@ function writeEvent(out, tag, event) {
 
 // --- Writing ---------------------------------------------------------------
 
+const POINTER_TAGS = new Set(['FAMC', 'FAMS', 'OBJE', 'HUSB', 'WIFE', 'CHIL']);
+
 class Writer {
   #lines = [];
 
   /** line(level, tag, value) or line(level, xref, tag) for record starts. */
   line(level, ...parts) {
-    const text = [String(level), ...parts.filter((p) => p !== '' && p !== undefined)].join(' ');
+    const filtered = parts.filter((p) => p !== '' && p !== undefined);
+    const isRecordStart = level === 0 && filtered.length === 2 && /^@[IFO]\d+@$/.test(filtered[0]);
+
+    if (!isRecordStart && filtered.length >= 2) {
+      const tag = filtered[0];
+      const rawValue = String(filtered[1]).replace(/[\r\n]+/g, ' ');
+      filtered[1] = POINTER_TAGS.has(tag) ? rawValue : rawValue.replace(/@/g, '@@');
+    }
+
+    const text = [String(level), ...filtered].join(' ');
     this.#lines.push(text);
   }
 
@@ -334,7 +345,7 @@ class Writer {
     const paragraphs = String(value).split(/\r?\n/);
 
     paragraphs.forEach((paragraph, index) => {
-      const chunks = split(paragraph, MAX_LINE);
+      const chunks = split(paragraph, Math.floor(MAX_LINE / 2));
       const first = chunks.shift() ?? '';
 
       if (index === 0) this.line(level, tag, first);

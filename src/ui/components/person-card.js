@@ -18,7 +18,7 @@
 import { el, svg, setChildren, emit } from '../dom.js';
 import { base, flags, sheet } from '../styles/sheets.js';
 import css from './person-card.css?inline';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { issueLine } from '../issue-text.js';
 import { displayName, documentsOf } from '../../domain/graph/queries.js';
 import { countryFlag, countryName } from '../../domain/model/countries.js';
@@ -120,7 +120,7 @@ export class PersonCard extends HTMLElement {
 
     this.toggleAttribute('placeholder', person.isPlaceholder);
 
-    const name = displayName(person);
+    const name = displayName(person, locale);
     const lifespan = formatLifespan(person.birth, person.death);
     const notes = this.#issues.map((issue) => issueLine(issue, this.#graph));
     const docs =

@@ -7,7 +7,7 @@
  * who the issue is actually about.
  */
 
-import { S, messageFor } from '../config/strings.js';
+import { S, locale, messageFor } from '../config/strings.js';
 import { displayName } from '../domain/graph/queries.js';
 
 /**
@@ -50,7 +50,7 @@ function peopleIn(issue, graph) {
     .filter((subject) => subject.type === 'person')
     .map((subject) => ({
       id: subject.id,
-      name: displayName(graph.persons.get(subject.id)),
+      name: displayName(graph.persons.get(subject.id), locale),
       role: 'subject',
     }))
     .filter((person) => person.name !== '');
@@ -67,6 +67,6 @@ function ancestorOf(issue, graph) {
   const id = issue.params?.ancestorId;
   if (!id || !graph) return null;
 
-  const name = displayName(graph.persons.get(id));
+  const name = displayName(graph.persons.get(id), locale);
   return name === '' ? null : { id, name, role: 'ancestor' };
 }

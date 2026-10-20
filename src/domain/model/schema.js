@@ -9,7 +9,15 @@
  * JSON file is external data, exactly as if it came from an API.
  */
 
-import { SCHEMA_VERSION, Sex, UnionType, ParentType, Certainty, MediaKind } from './factories.js';
+import {
+  SCHEMA_VERSION,
+  Sex,
+  UnionType,
+  ParentType,
+  Certainty,
+  MediaKind,
+  MediaRole,
+} from './factories.js';
 import { parseDate, unknownDate } from '../date/parse.js';
 import { isCountryCode } from './countries.js';
 
@@ -59,6 +67,13 @@ export function validateProject(data) {
 
   if (!Number.isInteger(data.schemaVersion)) {
     errors.push(new SchemaError('MISSING_VERSION', 'schemaVersion is required'));
+  } else if (data.schemaVersion > SCHEMA_VERSION) {
+    errors.push(
+      new SchemaError(
+        'FUTURE_VERSION',
+        `schemaVersion ${data.schemaVersion} requires a newer version of AncesTree`,
+      ),
+    );
   }
 
   for (const key of COLLECTIONS) {
@@ -154,7 +169,7 @@ function normalizeMedia(m) {
   return {
     id: String(m.id),
     kind: enumOr(m.kind, MediaKind, MediaKind.PHOTO),
-    path: stringOr(m.path),
+    path: safeMediaPath(m.path),
     hash: stringOr(m.hash),
     mime: stringOr(m.mime),
     bytes: numberOr(m.bytes, 0),
@@ -162,9 +177,43 @@ function normalizeMedia(m) {
     height: Number.isFinite(m.height) ? m.height : null,
     caption: stringOr(m.caption),
     takenDate: m.takenDate ? normalizeDate(m.takenDate) : null,
-    links: Array.isArray(m.links) ? m.links : [],
+    links: Array.isArray(m.links) ? m.links.map(normalizeMediaLink).filter(Boolean) : [],
     exifStripped: m.exifStripped === true,
   };
+}
+
+function normalizeMediaLink(link) {
+  if (!link || typeof link !== 'object') return null;
+  const targetId =
+    typeof link.targetId === 'string'
+      ? link.targetId.trim()
+      : typeof link.targetId === 'number'
+        ? String(link.targetId)
+        : '';
+  if (targetId === '') return null;
+
+  return {
+    targetType: 'person',
+    targetId,
+    role: enumOr(link.role, MediaRole, MediaRole.ATTACHMENT),
+  };
+}
+
+/**
+ * Validates that a media path is a safe relative path under `photos/` or `documents/`.
+ * Returns '' if the path is missing or unsafe.
+ */
+export function safeMediaPath(raw) {
+  if (typeof raw !== 'string') return '';
+  const normalized = raw.replace(/\\/g, '/').trim();
+  if (normalized === '' || normalized.startsWith('/') || /^[a-z]:/i.test(normalized)) return '';
+
+  const segments = normalized.split('/');
+  if (segments.length < 2) return '';
+  if (segments[0] !== 'photos' && segments[0] !== 'documents') return '';
+  if (segments.some((s) => s === '' || s === '.' || s === '..')) return '';
+
+  return normalized;
 }
 
 const stringOr = (value, fallback = '') => (typeof value === 'string' ? value : fallback);

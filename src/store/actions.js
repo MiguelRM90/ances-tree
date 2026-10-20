@@ -509,16 +509,13 @@ export function setChildUnion(childId, unionId) {
  * Not recorded in the undo history — it is a view setting, not an edit.
  */
 export function setGenerationWindow({ up, down }) {
-  return store.apply(
-    (project) => ({
-      ...project,
-      settings: {
-        ...project.settings,
-        maxGenerationsUp: up ?? project.settings.maxGenerationsUp,
-        maxGenerationsDown: down ?? project.settings.maxGenerationsDown,
-      },
-    }),
-    { label: 'view depth', record: false },
+  if (!store.project) return { ok: false, errors: [] };
+  return store.updateSettings(
+    {
+      maxGenerationsUp: up ?? store.project.settings.maxGenerationsUp,
+      maxGenerationsDown: down ?? store.project.settings.maxGenerationsDown,
+    },
+    { label: 'view depth' },
   );
 }
 
@@ -697,6 +694,14 @@ export async function downloadDocument(mediaId) {
 }
 
 export function removeEntity(kind, id) {
+  if (kind === 'person' && store.graph) {
+    for (const media of store.graph.media.values()) {
+      const linkedToPerson = media.links.some((link) => link.targetId === id);
+      const stillUsed = media.links.some((link) => link.targetId !== id);
+      if (linkedToPerson && !stillUsed) release(media.path);
+    }
+  }
+
   return store.apply(
     (p) => {
       if (kind === 'person') {
@@ -711,6 +716,12 @@ export function removeEntity(kind, id) {
           parentChildren: p.parentChildren
             .filter((l) => l.parentId !== id && l.childId !== id)
             .map((l) => (removedUnionIds.has(l.unionId) ? { ...l, unionId: null } : l)),
+          media: p.media
+            .map((m) => ({
+              ...m,
+              links: m.links.filter((link) => link.targetId !== id),
+            }))
+            .filter((m) => m.links.length > 0),
           settings:
             p.settings.focalPersonId === id
               ? { ...p.settings, focalPersonId: nextFocalAfter(p, id) }

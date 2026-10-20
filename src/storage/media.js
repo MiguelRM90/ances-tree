@@ -104,7 +104,7 @@ export async function importPhoto(dirHandle, file, existingMedia = [], { stripEx
   // must not be thrown away with the rest of the metadata.
   const takenDate = await readExifDate(file);
 
-  const prepared = stripExif ? await stripMetadata(file) : { blob: file, ...type };
+  const prepared = stripExif ? await stripMetadata(file, type) : { blob: file, ...type };
   const hash = await sha256Hex(prepared.blob);
 
   const path = `${PHOTOS_DIR}/${hash.slice(0, 2)}/${hash}.${prepared.ext}`;
@@ -138,14 +138,16 @@ export async function importPhoto(dirHandle, file, existingMedia = [], { stripEx
  * first. Without it, stripping the metadata would also strip the orientation
  * flag and every portrait photo would come out lying on its side.
  */
-async function stripMetadata(file) {
+async function stripMetadata(file, type = { mime: 'image/jpeg', ext: 'jpg' }) {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
 
   try {
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     canvas.getContext('2d').drawImage(bitmap, 0, 0);
-    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
-    return { blob, mime: 'image/jpeg', ext: 'jpg' };
+    const options =
+      type.mime === 'image/png' ? { type: 'image/png' } : { type: type.mime, quality: 0.92 };
+    const blob = await canvas.convertToBlob(options);
+    return { blob, mime: type.mime, ext: type.ext };
   } finally {
     bitmap.close();
   }

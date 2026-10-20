@@ -29,7 +29,7 @@ const fold = (text) =>
  * @param {{limit?: number}} [options]
  * @returns {Array<{id: string, name: string, lifespan: string, isPlaceholder: boolean}>}
  */
-export function searchPeople(g, query, { limit = 20 } = {}) {
+export function searchPeople(g, query, { limit = 20, locale } = {}) {
   const needle = fold(query);
   if (needle === '') return [];
 
@@ -37,7 +37,7 @@ export function searchPeople(g, query, { limit = 20 } = {}) {
   const found = [];
 
   for (const person of g.persons.values()) {
-    const name = displayName(person);
+    const name = displayName(person, locale);
     const haystack = fold(name);
 
     // Every word has to appear somewhere: "gil ramon" finds "Ramón Gil".

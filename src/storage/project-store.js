@@ -79,7 +79,10 @@ export async function loadProject(dirHandle) {
 
   const result = parseProject(await file.text());
   if (!result.ok) {
-    throw new StorageError('INVALID_PROJECT', result.errors.map((e) => e.message).join('; '));
+    const code = result.errors.some((e) => e.code === 'FUTURE_VERSION')
+      ? 'FUTURE_VERSION'
+      : 'INVALID_PROJECT';
+    throw new StorageError(code, result.errors.map((e) => e.message).join('; '));
   }
 
   return result.data;
@@ -93,13 +96,16 @@ export async function loadProject(dirHandle) {
  * to a temporary file and commits on close(), so a failure half-way does not
  * corrupt the existing file.
  */
-export async function writeProject(dirHandle, project) {
+export async function writeProject(dirHandle, project, { rotate = true } = {}) {
   const shaped = validateProject(project);
   if (!shaped.ok) {
-    throw new StorageError('INVALID_PROJECT', shaped.errors.map((e) => e.message).join('; '));
+    const code = shaped.errors.some((e) => e.code === 'FUTURE_VERSION')
+      ? 'FUTURE_VERSION'
+      : 'INVALID_PROJECT';
+    throw new StorageError(code, shaped.errors.map((e) => e.message).join('; '));
   }
 
-  await rotateBackup(dirHandle);
+  if (rotate) await rotateBackup(dirHandle);
 
   const payload = {
     ...project,
@@ -135,7 +141,7 @@ async function rotateBackup(dirHandle) {
   if (!current) return;
 
   const backups = await dirHandle.getDirectoryHandle(BACKUPS_DIR, { create: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 17);
   await writeFile(backups, `family-${stamp}.json`, await current.text());
 
   const names = [];

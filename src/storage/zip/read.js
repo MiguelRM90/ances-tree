@@ -60,8 +60,8 @@ export async function openArchive(blob) {
   return {
     entries,
     totalBytes: entries.reduce((sum, entry) => sum + entry.uncompressedSize, 0),
-    stream: (entry) => entryStream(blob, entry),
-    bytes: (entry) => entryBytes(blob, entry),
+    stream: (entry, options) => entryStream(blob, entry, options),
+    bytes: (entry, options) => entryBytes(blob, entry, options),
   };
 }
 
@@ -213,17 +213,54 @@ async function dataOffset(blob, entry) {
   return entry.localOffset + LOCAL_HEADER_SIZE + nameLength + extraLength;
 }
 
-async function entryStream(blob, entry) {
+async function entryStream(blob, entry, { maxBytes = Infinity } = {}) {
   const start = await dataOffset(blob, entry);
   const slice = blob.slice(start, start + entry.compressedSize);
 
-  if (entry.method === METHOD_STORE) return slice.stream();
-  if (entry.method === METHOD_DEFLATE) return inflateRawStream(slice.stream());
+  let rawStream;
+  if (entry.method === METHOD_STORE) rawStream = slice.stream();
+  else if (entry.method === METHOD_DEFLATE) rawStream = inflateRawStream(slice.stream());
+  else {
+    throw new ZipError('UNSUPPORTED_METHOD', `Compression method ${entry.method} is not supported`);
+  }
 
-  throw new ZipError('UNSUPPORTED_METHOD', `Compression method ${entry.method} is not supported`);
+  if (!Number.isFinite(maxBytes)) return rawStream;
+
+  let seen = 0;
+  return rawStream.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        seen += chunk.byteLength;
+        if (seen > maxBytes) {
+          controller.error(
+            new ZipError('TOO_LARGE', `Entry ${entry.path} expands beyond the allowed maximum`),
+          );
+          return;
+        }
+        controller.enqueue(chunk);
+      },
+    }),
+  );
 }
 
-async function entryBytes(blob, entry) {
-  const stream = await entryStream(blob, entry);
-  return new Uint8Array(await new Response(stream).arrayBuffer());
+async function entryBytes(blob, entry, options) {
+  const stream = await entryStream(blob, entry, options);
+  const chunks = [];
+  const reader = stream.getReader();
+  let total = 0;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.byteLength;
+  }
+
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
 }

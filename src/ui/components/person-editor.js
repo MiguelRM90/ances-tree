@@ -6,7 +6,7 @@
  * (data-model.md, genealogical dates).
  */
 
-import { el, emit, setChildren } from '../dom.js';
+import { el, emit, setChildren, formatBytes } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './person-editor.css?inline';
 import { S } from '../../config/strings.js';
@@ -616,13 +616,6 @@ function countrySelect() {
 
 function labelled(text, field) {
   return el('label', { children: [el('span', { text }), field] });
-}
-
-function formatBytes(bytes) {
-  if (!bytes || bytes <= 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 customElements.define('person-editor', PersonEditor);

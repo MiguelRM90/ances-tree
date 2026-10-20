@@ -195,6 +195,20 @@ export const en = {
     RAW: 'GEDCOM text',
   },
 
+  dateFormat: {
+    ABOUT: 'about',
+    ESTIMATED: 'estimated',
+    CALCULATED: 'calculated',
+    BEFORE: 'before',
+    AFTER: 'after',
+    between: (from, to) => `between ${from} and ${to}`,
+  },
+
+  person: {
+    unknown: 'Unknown',
+    unnamed: 'Unnamed',
+  },
+
   card: {
     issues: (n) => `${n} ${n === 1 ? 'check' : 'checks'} on this person`,
     hasNote: 'Has a written note',

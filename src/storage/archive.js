@@ -25,7 +25,12 @@ import { buildManifest, loadProject, writeProject, newDirectory } from './projec
 import { parseProject } from '../domain/model/schema.js';
 import { exportGedcom } from '../domain/gedcom/export.js';
 import { importGedcom } from '../domain/gedcom/import.js';
-import { MAX_ZIP_ENTRIES, MAX_UNZIPPED_BYTES, MAX_GEDCOM_BYTES } from '../config/limits.js';
+import {
+  MAX_ZIP_ENTRIES,
+  MAX_UNZIPPED_BYTES,
+  MAX_GEDCOM_BYTES,
+  MAX_JSON_BYTES,
+} from '../config/limits.js';
 
 export { GEDCOM_FILE };
 
@@ -142,6 +147,10 @@ export async function exportProject(dirHandle, project) {
     },
   });
 
+  if (result.ok) {
+    await writeGedcom(dirHandle, project).catch(() => {});
+  }
+
   return result.ok ? { ok: true, entries } : result;
 }
 
@@ -192,9 +201,19 @@ export async function inspectArchive(file) {
   }
 
   const manifest = await readJsonEntry(archive, MANIFEST_FILE);
-  const parsed = parseProject(new TextDecoder().decode(await archive.bytes(familyEntry)));
+  let familyBytes;
+  try {
+    familyBytes = await archive.bytes(familyEntry, { maxBytes: MAX_JSON_BYTES });
+  } catch (cause) {
+    if (cause instanceof ZipError) throw new StorageError(cause.code, cause.message, cause);
+    throw cause;
+  }
+  const parsed = parseProject(new TextDecoder().decode(familyBytes));
   if (!parsed.ok) {
-    throw new StorageError('INVALID_PROJECT', parsed.errors.map((e) => e.message).join('; '));
+    const code = parsed.errors.some((e) => e.code === 'FUTURE_VERSION')
+      ? 'FUTURE_VERSION'
+      : 'INVALID_PROJECT';
+    throw new StorageError(code, parsed.errors.map((e) => e.message).join('; '));
   }
 
   return {
@@ -262,15 +281,16 @@ export async function importByMerging(inspection, dirHandle, currentProject) {
   const { archive, project: incoming } = inspection;
   const known = new Set(currentProject.media.map((item) => item.path));
   const warnings = [];
+  const budget = { remaining: MAX_UNZIPPED_BYTES };
 
   for (const item of incoming.media) {
-    if (known.has(item.path)) continue;
+    if (!item.path || known.has(item.path)) continue;
     const entry = findEntry(archive, item.path);
     if (!entry) {
       warnings.push({ path: item.path, reason: 'MISSING_IN_ARCHIVE' });
       continue;
     }
-    warnings.push(...(await extractEntry(archive, entry, dirHandle)));
+    warnings.push(...(await extractEntry(archive, entry, dirHandle, budget)));
   }
 
   return { ok: true, incoming, warnings };
@@ -280,10 +300,11 @@ export async function importByMerging(inspection, dirHandle, currentProject) {
 
 async function extractAll(archive, dirHandle) {
   const warnings = [];
+  const budget = { remaining: MAX_UNZIPPED_BYTES };
 
   for (const entry of archive.entries) {
     if (entry.isDirectory) continue;
-    warnings.push(...(await extractEntry(archive, entry, dirHandle)));
+    warnings.push(...(await extractEntry(archive, entry, dirHandle, budget)));
   }
 
   return warnings;
@@ -297,20 +318,32 @@ async function extractAll(archive, dirHandle) {
  * verified without ever being held in memory. WebCrypto has no streaming
  * SHA-256, so hash checking would have meant buffering every file.
  */
-async function extractEntry(archive, entry, dirHandle) {
-  const stream = await archive.stream(entry);
+async function extractEntry(archive, entry, dirHandle, budget = { remaining: MAX_UNZIPPED_BYTES }) {
+  const stream = await archive.stream(entry, { maxBytes: budget.remaining });
   const fileHandle = await resolveFile(dirHandle, entry.path);
   const writable = await fileHandle.createWritable();
 
   const crc = new Crc32();
   const tap = new TransformStream({
     transform(chunk, controller) {
+      budget.remaining -= chunk.byteLength;
+      if (budget.remaining < 0) {
+        controller.error(
+          new StorageError('TOO_LARGE', 'Archive expands beyond the allowed maximum'),
+        );
+        return;
+      }
       crc.update(chunk);
       controller.enqueue(chunk);
     },
   });
 
-  await stream.pipeThrough(tap).pipeTo(writable);
+  try {
+    await stream.pipeThrough(tap).pipeTo(writable);
+  } catch (cause) {
+    if (cause instanceof ZipError) throw new StorageError(cause.code, cause.message, cause);
+    throw cause;
+  }
 
   // A mismatch is reported, not thrown: one damaged photo must not abort the
   // import of an entire family archive.
@@ -336,7 +369,9 @@ async function readJsonEntry(archive, path) {
   const entry = findEntry(archive, path);
   if (!entry) return null;
   try {
-    return JSON.parse(new TextDecoder().decode(await archive.bytes(entry)));
+    return JSON.parse(
+      new TextDecoder().decode(await archive.bytes(entry, { maxBytes: MAX_JSON_BYTES })),
+    );
   } catch {
     return null;
   }

@@ -33,9 +33,11 @@ This skill covers working with the native GEDCOM parser and generator in `src/do
    - GEDCOM 7.0 requires strict `UTF-8`.
    - If `CHAR ANSEL` is encountered, issue a user warning regarding accented characters and fall back to Latin-1 approximations.
 
-4. **Line Splitting and Continuation**:
+4. **Line Splitting, Continuation, and Escaping**:
    - GEDCOM 5.5.1 enforces 255-character line length limits via `CONT` and `CONC`.
-   - `parser.js` must accurately reassemble strings with `CONC` (direct continuation without newline) and `CONT` (continuation with newline).
+   - `parser.js` must accurately reassemble strings with `CONC` (direct continuation without newline) and `CONT` (continuation with newline), and unescape `@@` to `@`.
+   - `export.js` escapes literal `@` to `@@` in non-pointer values and sanitizes single-line values against accidental newline injection.
+   - `import.js` validates `OBJE.FILE` paths with `safeMediaPath` so only safe relative paths under `photos/` or `documents/` are imported.
 
 ## Common Tag Mappings
 

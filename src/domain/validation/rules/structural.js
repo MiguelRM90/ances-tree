@@ -174,6 +174,16 @@ function danglingRefs(g) {
     check('union', union.id, 'person', union.partner2Id, 'partner2Id');
   }
 
+  if (g.media) {
+    for (const item of g.media.values()) {
+      for (const link of item.links ?? []) {
+        if (link.targetType === 'person') {
+          check('media', item.id, 'person', link.targetId, 'targetId');
+        }
+      }
+    }
+  }
+
   return found;
 }
 

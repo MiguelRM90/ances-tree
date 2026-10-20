@@ -16,7 +16,7 @@
 import { el, setChildren, emit } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './date-field.css?inline';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { DateMode, MODE_INPUT, buildRaw, describeDate } from '../../domain/date/build.js';
 import { parseDate, DateKind } from '../../domain/date/parse.js';
 import { formatDate } from '../../domain/date/format.js';
@@ -149,7 +149,9 @@ export class DateField extends HTMLElement {
     const parsed = parseDate(raw);
     const unrecognised = parsed.kind === DateKind.UNKNOWN;
 
-    this.#preview.textContent = unrecognised ? S.editor.dateUnrecognised : formatDate(parsed);
+    this.#preview.textContent = unrecognised
+      ? S.editor.dateUnrecognised
+      : formatDate(parsed, locale);
     this.#preview.classList.toggle('unknown', unrecognised);
 
     emit(this, 'date:change', { raw });

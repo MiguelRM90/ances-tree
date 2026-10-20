@@ -8,7 +8,7 @@ description: Content Security Policy (CSP) and XSS prevention security rule
 The project enforces a strict Content Security Policy in production:
 
 ```
-default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'
+default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'
 ```
 
 1. **`innerHTML` with User Data is Strictly Forbidden**:

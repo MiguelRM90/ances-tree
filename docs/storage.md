@@ -114,7 +114,7 @@ FamiliaApellido1/
 │  └─ 4c/
 │     └─ 4c88fe...02.pdf
 └─ backups/
-   └─ family-2026-08-15T1030.json
+   └─ family-2026-08-15T103000.json
 ```
 
 ### Nombres por hash y sharding
@@ -209,7 +209,7 @@ Se escriben una sola vez, al importarlos, y no se modifican nunca: son inmutable
 4. **Limpiar EXIF** re-codificando por `canvas` → `toBlob()`, reaplicando la orientación leída en el paso anterior (si no, las fotos verticales salen giradas)
 5. Calcular SHA-256 del resultado con `crypto.subtle.digest`
 6. Si el hash ya existe, no se escribe nada: se reutiliza el `MediaObject`
-7. Escribir en `photos/<xx>/<hash>.jpg` y crear el `MediaObject`
+7. Escribir en `photos/<xx>/<hash>.<ext>` (conservando `.jpg`, `.png` o `.webp`) y crear el `MediaObject`
 
 El porqué del paso 4 está en [decisions.md](decisions.md#fotografías-metadatos-exif): las fotos familiares llevan geolocalización.
 

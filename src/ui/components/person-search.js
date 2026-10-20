@@ -13,7 +13,7 @@
 import { el, setChildren, emit, debounce } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './person-search.css?inline';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { SEARCH_DEBOUNCE_MS, SEARCH_RESULTS } from '../../config/limits.js';
 import { searchPeople } from '../../domain/graph/search.js';
 
@@ -106,6 +106,7 @@ export class PersonSearch extends HTMLElement {
     // quietly return fewer than N results for no reason the user can see.
     const found = searchPeople(this.#graph, this.#input.value, {
       limit: this.#exclude ? SEARCH_RESULTS + this.#exclude.size : SEARCH_RESULTS,
+      locale,
     });
 
     this.#results = (this.#exclude ? found.filter((p) => !this.#exclude.has(p.id)) : found).slice(

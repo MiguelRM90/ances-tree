@@ -6,7 +6,7 @@
  * comes down as properties (architecture.md, store section).
  */
 
-import { el, clear, setChildren } from '../dom.js';
+import { el, clear, setChildren, formatBytes } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './app-root.css?inline';
 import { S, LOCALES, locale, setLocale } from '../../config/strings.js';
@@ -27,26 +27,21 @@ const styles = sheet(css);
 
 const STORAGE_NOTICE_KEY = 'ancestree.browserStorageExplained';
 
+const RELATION_ACTIONS = {
+  addParentLink: actions.addParentLink,
+  updateParentLink: actions.updateParentLink,
+  setChildUnion: actions.setChildUnion,
+  addUnion: actions.addUnion,
+  updateUnion: actions.updateUnion,
+  removeEntity: actions.removeEntity,
+};
+
 /** The last save, in the reader's own date format. Empty if never recorded. */
 function formatSaved(iso) {
   if (!iso) return '';
   const when = new Date(iso);
   if (Number.isNaN(when.getTime())) return '';
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(when);
-}
-
-/** Rounded to whatever unit keeps the number readable. */
-function formatBytes(bytes) {
-  const mb = bytes / 1e6;
-  const unit = mb < 1 ? 'kilobyte' : mb < 1000 ? 'megabyte' : 'gigabyte';
-  const value = mb < 1 ? bytes / 1e3 : mb < 1000 ? mb : mb / 1000;
-
-  return new Intl.NumberFormat(locale, {
-    style: 'unit',
-    unit,
-    unitDisplay: 'short',
-    maximumFractionDigits: value < 10 ? 1 : 0,
-  }).format(value);
 }
 
 export class AppRoot extends HTMLElement {
@@ -347,7 +342,7 @@ export class AppRoot extends HTMLElement {
     this.#depth.up.value = String(store.project.settings.maxGenerationsUp);
     this.#depth.down.value = String(store.project.settings.maxGenerationsDown);
 
-    const name = displayName(store.graph.persons.get(store.focalPersonId));
+    const name = displayName(store.graph.persons.get(store.focalPersonId), locale);
     this.#focal.title = `${S.toolbar.centredOn} ${name}`;
     setChildren(this.#focal, [
       el('span', { text: `${S.toolbar.centredOn} ` }),
@@ -453,8 +448,10 @@ export class AppRoot extends HTMLElement {
    * would otherwise look as though nothing had happened.
    */
   #onRelationChange = (event) => {
-    const { action, args } = event.detail;
-    const result = actions[action]?.(...args);
+    const { action, args } = event.detail ?? {};
+    const handler = Object.hasOwn(RELATION_ACTIONS, action) ? RELATION_ACTIONS[action] : null;
+    if (!handler || !Array.isArray(args)) return;
+    const result = handler(...args);
     if (result && result.ok === false && result.errors) this.#reportBlocked(result.errors);
   };
 

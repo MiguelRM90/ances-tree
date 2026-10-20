@@ -42,7 +42,7 @@ FamilyProject/
 ## Pure JS Streaming ZIP (`src/storage/zip/`)
 
 - `write.js`: Uses native `CompressionStream('deflate-raw')` and computes CRC32. Writes files chunk-by-chunk directly into the output stream without buffering multi-gigabyte archives into RAM.
-- `read.js`: Reads the ZIP central directory first to parse structure, then decompresses entries with `safeEntryPath` checks to prevent Zip Slip directory traversal vulnerabilities.
+- `read.js`: Reads the ZIP central directory first to parse structure, then decompresses entries with `safeEntryPath` checks to prevent Zip Slip directory traversal vulnerabilities, and enforces real decompressed byte limits (`MAX_JSON_BYTES`, `MAX_UNZIPPED_BYTES`) via `TransformStream` against Zip Bombs.
 - **Temporary file hygiene**: Fallback file downloads use a temporary file inside OPFS. Never delete the temp file immediately when triggering download; blob URLs reference the OPFS file handle and deletion cancels active downloads. Temp files are swept on next export.
 
 ## IndexedDB Boundaries (`src/storage/idb.js`)
@@ -50,7 +50,7 @@ FamilyProject/
 - IndexedDB stores ONLY:
   1. Serialized `FileSystemHandle` instances for recently opened projects.
   2. Recent project registry and metadata.
-  3. UI preferences (e.g. locale).
+- UI preferences (`ancestree.locale`, storage notice flags) live in `localStorage`.
 - **NEVER store family graph data or entities inside IndexedDB**. `family.json` is the sole source of truth.
 
 ## Verification

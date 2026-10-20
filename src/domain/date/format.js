@@ -11,14 +11,15 @@
  */
 
 import { DateKind, Precision, anchorOf, yearOf } from './parse.js';
+import { en } from '../../config/locales/en.js';
+import { es } from '../../config/locales/es.js';
 
-const QUALIFIER = {
-  [DateKind.ABOUT]: 'about',
-  [DateKind.ESTIMATED]: 'estimated',
-  [DateKind.CALCULATED]: 'calculated',
-  [DateKind.BEFORE]: 'before',
-  [DateKind.AFTER]: 'after',
-};
+const dictionaryFor = (locale) =>
+  String(locale ?? '')
+    .slice(0, 2)
+    .toLowerCase() === 'es'
+    ? es
+    : en;
 
 // Intl.DateTimeFormat is expensive to build, so instances are reused.
 const formatters = new Map();
@@ -41,12 +42,14 @@ function formatter(locale, options) {
 export function formatDate(date, locale) {
   if (!date || date.kind === DateKind.UNKNOWN) return date?.raw ?? '';
 
+  const dict = dictionaryFor(locale).dateFormat;
+
   if (date.kind === DateKind.BETWEEN) {
-    return `between ${yearOf(date.earliest)} and ${yearOf(date.latest)}`;
+    return dict.between(yearOf(date.earliest), yearOf(date.latest));
   }
 
   const point = formatPoint(anchorOf(date), date.precision, locale);
-  const qualifier = QUALIFIER[date.kind];
+  const qualifier = dict[date.kind];
 
   return qualifier ? `${qualifier} ${point}` : point;
 }

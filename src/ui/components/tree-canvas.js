@@ -14,7 +14,7 @@
 import { el, clear } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './tree-canvas.css?inline';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { LAYOUT, layoutProperties } from '../../config/layout.js';
 import { buildLayout, NodeType } from '../../domain/layout/engine.js';
 import { portraitOf, documentsOf, displayName } from '../../domain/graph/queries.js';
@@ -144,7 +144,7 @@ export class TreeCanvas extends HTMLElement {
       unionEl.level = level;
       unionEl.focusable = false;
       unionEl.partners = [union.partner1Id, union.partner2Id].map((id) =>
-        displayName(this.#graph.persons.get(id)),
+        displayName(this.#graph.persons.get(id), locale),
       );
       return unionEl;
     }

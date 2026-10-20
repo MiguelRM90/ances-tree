@@ -31,6 +31,9 @@ class Store extends EventTarget {
   #dirHandle = null;
   #saveTimer = null;
   #saving = false;
+  #savePromise = null;
+  #pendingSave = false;
+  #dataDirty = false;
   #undo = [];
   #redo = [];
   /** Where the user has been, so "back" means something. Not an edit history. */
@@ -86,12 +89,14 @@ class Store extends EventTarget {
   }
 
   close() {
-    this.#flushPendingSave();
+    void this.flushSave();
     releaseAll();
     this.#project = null;
     this.#indexes = null;
     this.#issues = [];
     this.#dirHandle = null;
+    this.#pendingSave = false;
+    this.#dataDirty = false;
     this.#undo = [];
     this.#redo = [];
     this.#emit('close');
@@ -100,6 +105,8 @@ class Store extends EventTarget {
   #adopt(project, dirHandle) {
     this.#project = project;
     this.#dirHandle = dirHandle;
+    this.#pendingSave = false;
+    this.#dataDirty = false;
     this.#undo = [];
     this.#redo = [];
     this.#trail = [];
@@ -118,7 +125,7 @@ class Store extends EventTarget {
     if (!this.#project) return { ok: false, errors: [] };
 
     const before = this.#project;
-    const next = mutate(structuredClone(before));
+    const next = mutate(before);
 
     // ERROR rules only before writing. Warnings are computed afterwards so
     // interaction is never held up. And only errors this change INTRODUCES can
@@ -133,6 +140,7 @@ class Store extends EventTarget {
     }
 
     this.#project = next;
+    this.#dataDirty = true;
     this.#reindex();
     this.#emit('change', { label });
     this.#scheduleSave();
@@ -152,6 +160,7 @@ class Store extends EventTarget {
     if (!step) return;
     to.push({ label, before: this.#project });
     this.#project = step.before;
+    this.#dataDirty = true;
     this.#reindex();
     this.#emit('change', { label });
     this.#scheduleSave();
@@ -181,6 +190,23 @@ class Store extends EventTarget {
   }
 
   /**
+   * Updates view settings (focal person, generation depth) without cloning,
+   * reindexing or revalidating the genealogical graph, and without rotating
+   * genealogy backups on disk.
+   */
+  updateSettings(changes, { label = 'settings' } = {}) {
+    if (!this.#project) return { ok: false, errors: [] };
+
+    const settings = { ...this.#project.settings, ...changes };
+    this.#project = { ...this.#project, settings };
+    if (this.#indexes) this.#indexes.settings = settings;
+
+    this.#emit('change', { label });
+    this.#scheduleSave();
+    return { ok: true };
+  }
+
+  /**
    * Centres the tree on someone, remembering where we came from.
    *
    * Kept apart from undo: moving around is not an edit, and mixing the two
@@ -192,10 +218,7 @@ class Store extends EventTarget {
     const previous = this.focalPersonId;
     if (personId === previous) return { ok: true };
 
-    const result = this.apply(
-      (p) => ({ ...p, settings: { ...p.settings, focalPersonId: personId } }),
-      { label: 'focus', record: false },
-    );
+    const result = this.updateSettings({ focalPersonId: personId }, { label: 'focus' });
 
     if (result.ok && remember && previous !== null) {
       this.#trail.push(previous);
@@ -237,31 +260,71 @@ class Store extends EventTarget {
 
   #scheduleSave() {
     clearTimeout(this.#saveTimer);
-    this.#saveTimer = setTimeout(() => void this.save(), AUTOSAVE_DEBOUNCE_MS);
+    this.#saveTimer = setTimeout(() => {
+      this.#saveTimer = null;
+      void this.save();
+    }, AUTOSAVE_DEBOUNCE_MS);
   }
 
-  #flushPendingSave() {
+  /**
+   * Cancels any pending debounced save and writes immediately if there are
+   * unsaved changes or an active timer.
+   */
+  flushSave() {
     if (this.#saveTimer !== null) {
       clearTimeout(this.#saveTimer);
       this.#saveTimer = null;
-      void this.save();
+      return this.save();
     }
+    if (this.#saving) return this.save();
+    return Promise.resolve();
   }
 
   async save() {
-    if (!this.#project || !this.#dirHandle || this.#saving) return;
-    const project = this.#project;
-    const dirHandle = this.#dirHandle;
+    if (this.#saveTimer !== null) {
+      clearTimeout(this.#saveTimer);
+      this.#saveTimer = null;
+    }
+
+    if (!this.#project || !this.#dirHandle) return;
+
+    if (this.#saving) {
+      this.#pendingSave = true;
+      return this.#savePromise;
+    }
+
     this.#saving = true;
-    this.#emit('saving');
+    this.#savePromise = this.#runSaveLoop();
+    return this.#savePromise;
+  }
+
+  async #runSaveLoop() {
     try {
-      const saved = await writeProject(dirHandle, project);
-      if (this.#project === project && this.#dirHandle === dirHandle) this.#project = saved;
-      this.#emit('saved');
-    } catch (error) {
-      this.#emit('save-error', { error });
+      do {
+        this.#pendingSave = false;
+        const project = this.#project;
+        const dirHandle = this.#dirHandle;
+        if (!project || !dirHandle) break;
+
+        const rotate = this.#dataDirty;
+        this.#dataDirty = false;
+
+        this.#emit('saving');
+        try {
+          const saved = await writeProject(dirHandle, project, { rotate });
+          if (this.#project === project && this.#dirHandle === dirHandle) {
+            this.#project = saved;
+          }
+          this.#emit('saved');
+        } catch (error) {
+          if (rotate) this.#dataDirty = true;
+          this.#emit('save-error', { error });
+          break;
+        }
+      } while (this.#pendingSave && this.#project !== null && this.#dirHandle !== null);
     } finally {
       this.#saving = false;
+      this.#savePromise = null;
     }
   }
 
@@ -275,6 +338,6 @@ export const store = new Store();
 // Forced save when the tab is hidden: the debounce must never cost data.
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') void store.save();
+    if (document.visibilityState === 'hidden') void store.flushSave();
   });
 }

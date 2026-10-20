@@ -198,6 +198,20 @@ export const es = {
     RAW: 'Texto GEDCOM',
   },
 
+  dateFormat: {
+    ABOUT: 'hacia',
+    ESTIMATED: 'estimada',
+    CALCULATED: 'calculada',
+    BEFORE: 'antes de',
+    AFTER: 'después de',
+    between: (from, to) => `entre ${from} y ${to}`,
+  },
+
+  person: {
+    unknown: 'Desconocida',
+    unnamed: 'Sin nombre',
+  },
+
   card: {
     issues: (n) => `${n} ${n === 1 ? 'aviso' : 'avisos'} sobre esta persona`,
     hasNote: 'Tiene una nota escrita',

@@ -8,15 +8,15 @@ Esta documentación está pensada para ser consultada tanto por desarrolladores 
 
 ## Mapa de Documentos
 
-| Documento | Descripción y Alcance |
-|---|---|
-| [vision.md](vision.md) | **Visión, Principios y Alcance**: Filosofía fundamental (*código público, datos privados, sin backend*), privacidad estricta y alcance del MVP. |
-| [architecture.md](architecture.md) | **Arquitectura de Capas y Componentes**: Las 4 capas estrictas (UI → Store → Domain → Storage), estructura de carpetas y diseño del motor de maquetación del árbol. |
-| [data-model.md](data-model.md) | **El Contrato de Datos**: Estructura de `Person`, `Union`, `ParentChild`, `Media`, modelo de fechas imprecisas (`DateValue`), rangos y severidades. |
-| [decisions.md](decisions.md) | **Registro de Decisiones Técnicas**: Por qué Web Components puros sin dependencias de runtime, modelo de almacenamiento dual, CSP estricto y convenciones. |
-| [storage.md](storage.md) | **Almacenamiento Físico y Persistencia**: Modos `DISK` (File System Access API) vs `BROWSER` (OPFS), estructura de la carpeta/ZIP, backups automáticos y seguridad. |
-| [validation-rules.md](validation-rules.md) | **Reglas de Validación**: Catálogo completo de reglas con identificador, severidad (`BLOCKED` vs `WARNING`) y casos de prueba. |
-| [gedcom-mapping.md](gedcom-mapping.md) | **Mapeo GEDCOM 5.5.1 / 7.0**: Transformación bidireccional, fidelidad, tratamiento de extensiones y qué datos se conservan o adaptan. |
+| Documento                                  | Descripción y Alcance                                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [vision.md](vision.md)                     | **Visión, Principios y Alcance**: Filosofía fundamental (_código público, datos privados, sin backend_), privacidad estricta y alcance del MVP.                     |
+| [architecture.md](architecture.md)         | **Arquitectura de Capas y Componentes**: Las 4 capas estrictas (UI → Store → Domain → Storage), estructura de carpetas y diseño del motor de maquetación del árbol. |
+| [data-model.md](data-model.md)             | **El Contrato de Datos**: Estructura de `Person`, `Union`, `ParentChild`, `Media`, modelo de fechas imprecisas (`DateValue`), rangos y severidades.                 |
+| [decisions.md](decisions.md)               | **Registro de Decisiones Técnicas**: Por qué Web Components puros sin dependencias de runtime, modelo de almacenamiento dual, CSP estricto y convenciones.          |
+| [storage.md](storage.md)                   | **Almacenamiento Físico y Persistencia**: Modos `DISK` (File System Access API) vs `BROWSER` (OPFS), estructura de la carpeta/ZIP, backups automáticos y seguridad. |
+| [validation-rules.md](validation-rules.md) | **Reglas de Validación**: Catálogo completo de reglas con identificador, severidad (`BLOCKED` vs `WARNING`) y casos de prueba.                                      |
+| [gedcom-mapping.md](gedcom-mapping.md)     | **Mapeo GEDCOM 5.5.1 / 7.0**: Transformación bidireccional, fidelidad, tratamiento de extensiones y qué datos se conservan o adaptan.                               |
 
 ---
 

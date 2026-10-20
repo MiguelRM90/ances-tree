@@ -18,7 +18,7 @@
 import { el, emit, setChildren, debounce } from '../dom.js';
 import { base, sheet } from '../styles/sheets.js';
 import css from './relation-editor.css?inline';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { UnionType, ParentType } from '../../domain/model/factories.js';
 import { parseDate } from '../../domain/date/parse.js';
 import { RELATION_EDIT_DEBOUNCE_MS } from '../../config/limits.js';
@@ -149,7 +149,7 @@ export class RelationEditor extends HTMLElement {
     const person = graph?.persons.get(this.#personId);
     if (!person) return;
 
-    this.#title.textContent = S.relations.title(displayName(person));
+    this.#title.textContent = S.relations.title(displayName(person, locale));
 
     this.#search.graph = graph;
     this.#search.exclude = descendantIds(graph, this.#personId);
@@ -367,7 +367,7 @@ export class RelationEditor extends HTMLElement {
 
   #nameOf(graph, personId) {
     const person = graph.persons.get(personId);
-    return person ? displayName(person) : S.relations.unknownPerson;
+    return person ? displayName(person, locale) : S.relations.unknownPerson;
   }
 }
 

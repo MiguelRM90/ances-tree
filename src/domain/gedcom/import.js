@@ -13,6 +13,7 @@
 import { parseGedcom, child, children, childValue } from './parser.js';
 import { parseDate } from '../date/parse.js';
 import { isCountryCode } from '../model/countries.js';
+import { safeMediaPath } from '../model/schema.js';
 import {
   createProject,
   createPerson,
@@ -279,8 +280,10 @@ function readObject(record) {
   const file = child(record, 'FILE');
   if (!file?.value) return null;
 
+  const path = safeMediaPath(file.value);
+  if (!path) return null;
+
   const form = childValue(file, 'FORM').toLowerCase() || childValue(record, 'FORM').toLowerCase();
-  const path = file.value.replace(/\\/g, '/');
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   const isDoc = DOC_EXTS.has(form) || DOC_EXTS.has(ext) || path.startsWith('documents/');
 

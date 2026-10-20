@@ -16,8 +16,9 @@ const CACHE = `ancestree-shell-${VERSION}`;
 
 self.addEventListener('install', (event) => {
   // No fixed precache list: asset names are hashed by the build. They are
-  // cached as they are requested.
-  event.waitUntil(self.skipWaiting());
+  // cached as they are requested. Do not skip waiting automatically so an
+  // active session with unsaved edits is never reloaded without consent.
+  event.waitUntil(caches.open(CACHE));
 });
 
 self.addEventListener('activate', (event) => {
