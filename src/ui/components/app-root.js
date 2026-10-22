@@ -192,8 +192,6 @@ export class AppRoot extends HTMLElement {
         el('div', { class: 'divider' }),
         this.#depthPicker('up', S.toolbar.ancestors, S.toolbar.generationsUp),
         this.#depthPicker('down', S.toolbar.descendants, S.toolbar.generationsDown),
-        el('div', { class: 'divider' }),
-        this.#languagePicker(),
       ],
     });
 
@@ -205,6 +203,7 @@ export class AppRoot extends HTMLElement {
         this.#toolbar,
         el('div', { class: 'spacer' }),
         this.#search,
+        this.#languagePicker(),
         this.#storageBadge(),
         this.#status,
       ],
@@ -306,7 +305,7 @@ export class AppRoot extends HTMLElement {
     select.value = locale;
     select.addEventListener('change', () => setLocale(select.value));
 
-    return el('label', { class: 'depth', children: [select] });
+    return el('label', { class: 'language-picker', children: [select] });
   }
 
   /** How many generations are drawn in one direction. */

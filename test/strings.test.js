@@ -6,6 +6,7 @@ import { buildIndexes } from '../src/domain/graph/indexes.js';
 import { validateAll } from '../src/domain/validation/engine.js';
 import { createParentChild } from '../src/domain/model/factories.js';
 import { person, project } from './fixtures/families.js';
+import '../src/ui/components/app-root.js';
 
 /** Every leaf key, as a dotted path. */
 function keysOf(dictionary, prefix = '') {
@@ -97,5 +98,29 @@ describe('validation messages', () => {
 
   it('the active dictionary is one of the two', () => {
     expect([en, es]).to.include(S);
+  });
+});
+
+describe('language picker', () => {
+  let root;
+
+  beforeEach(() => {
+    root = document.createElement('app-root');
+    document.body.append(root);
+  });
+
+  afterEach(() => {
+    root.remove();
+  });
+
+  it('is available and visible in the header even when no family project is open', () => {
+    const select = root.shadowRoot.querySelector('header .language-picker select');
+    expect(select, 'language picker select exists in header').to.not.be.null;
+
+    const toolbar = root.shadowRoot.querySelector('header .actions-inline');
+    expect(toolbar.contains(select), 'select must not be inside hidden toolbar').to.be.false;
+
+    const options = Array.from(select.querySelectorAll('option')).map((o) => o.value);
+    expect(options).to.eql(LOCALES.map((l) => l.code));
   });
 });
