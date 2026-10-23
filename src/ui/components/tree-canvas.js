@@ -27,6 +27,8 @@ const styles = sheet(css);
 export class TreeCanvas extends HTMLElement {
   #graph = null;
   #focalId = null;
+  #lastFocalId = null;
+  #selectedId = null;
   #issuesFor = () => [];
   #resolvePhoto = null;
   #canvas;
@@ -77,15 +79,40 @@ export class TreeCanvas extends HTMLElement {
   }
 
   /**
-   * @param {{graph: object, focalId: string|null, issuesFor: Function,
-   *          resolvePhoto: Function}} view
+   * @param {{graph: object, focalId: string|null, selectedId?: string|null,
+   *          issuesFor: Function, resolvePhoto: Function}} view
    */
   render(view) {
     this.#graph = view.graph;
     this.#focalId = view.focalId;
+    this.#selectedId = view.selectedId ?? view.focalId;
     this.#issuesFor = view.issuesFor ?? (() => []);
     this.#resolvePhoto = view.resolvePhoto ?? null;
     this.#paint();
+  }
+
+  /**
+   * Updates the selected card in-place without rebuilding the layout or
+   * scrolling the canvas, preserving native double-click targets.
+   */
+  setSelected(personId) {
+    this.#selectedId = personId ?? this.#focalId;
+    const targetNodeId = this.#selectedId ? `p:${this.#selectedId}` : null;
+
+    for (const [row, nodes] of this.#grid.entries()) {
+      for (const [column, node] of nodes.entries()) {
+        if (node.tagName === 'PERSON-CARD') {
+          const isSelected = node.dataset.nodeId === targetNodeId;
+          node.toggleAttribute('selected', isSelected);
+          if (isSelected) {
+            const previous = this.#grid[this.#cursor.row]?.[this.#cursor.column];
+            if (previous && previous !== node) previous.focusable = false;
+            this.#cursor = { row, column };
+            node.focusable = true;
+          }
+        }
+      }
+    }
   }
 
   #paint() {
@@ -93,6 +120,8 @@ export class TreeCanvas extends HTMLElement {
     // it. If the user was working inside the tree, focus follows them to the
     // new centre; if the change came from a dialog, it is left alone.
     const hadFocus = this.shadowRoot.activeElement !== null;
+    const focalChanged = this.#focalId !== this.#lastFocalId;
+    this.#lastFocalId = this.#focalId;
 
     clear(this.#canvas);
     this.#grid = [];
@@ -131,8 +160,8 @@ export class TreeCanvas extends HTMLElement {
     this.#canvas.append(this.#edgesLayer);
     this.#edgesLayer.paint(layout.edges, boxesOf(layout), layout);
 
-    this.#placeCursorOnFocal();
-    this.#revealFocal(hadFocus);
+    this.#placeCursorOnTarget();
+    this.#revealTarget({ center: focalChanged, restoreFocus: hadFocus });
   }
 
   #nodeElement(node, level) {
@@ -153,6 +182,7 @@ export class TreeCanvas extends HTMLElement {
     const card = document.createElement('person-card');
     card.dataset.nodeId = node.id;
     card.toggleAttribute('focal', person.id === this.#focalId);
+    card.toggleAttribute('selected', person.id === this.#selectedId);
     card.graph = this.#graph;
     card.level = level;
     card.focusable = false;
@@ -216,14 +246,19 @@ export class TreeCanvas extends HTMLElement {
 
   // --- Keyboard navigation -------------------------------------------------
 
-  /** The tab stop starts on the focal person, which is where attention is. */
-  #placeCursorOnFocal() {
-    for (const [row, nodes] of this.#grid.entries()) {
-      const column = nodes.findIndex((node) => node.hasAttribute('focal'));
-      if (column !== -1) {
-        this.#cursor = { row, column };
-        nodes[column].focusable = true;
-        return;
+  /**
+   * The tab stop starts on the selected person if visible in the current
+   * pedigree, falling back to the focal person.
+   */
+  #placeCursorOnTarget() {
+    for (const attr of ['selected', 'focal']) {
+      for (const [row, nodes] of this.#grid.entries()) {
+        const column = nodes.findIndex((node) => node.hasAttribute(attr));
+        if (column !== -1) {
+          this.#cursor = { row, column };
+          nodes[column].focusable = true;
+          return;
+        }
       }
     }
 
@@ -234,16 +269,16 @@ export class TreeCanvas extends HTMLElement {
   }
 
   /**
-   * Brings the centred person into view.
-   *
-   * Re-rooting rebuilds the entire layout, so without this the person just
-   * clicked can land anywhere — often off-screen.
+   * Brings the target person into view when the tree re-roots, or keeps
+   * keyboard focus without jumping the viewport when editing in place.
    */
-  #revealFocal(restoreFocus = false) {
+  #revealTarget({ center = false, restoreFocus = false } = {}) {
     const card = this.#grid[this.#cursor.row]?.[this.#cursor.column];
     if (!card) return;
 
-    card.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+    if (center) {
+      card.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+    }
     if (restoreFocus) card.focus({ preventScroll: true });
   }
 

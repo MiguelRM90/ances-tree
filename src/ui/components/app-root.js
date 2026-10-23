@@ -48,6 +48,7 @@ export class AppRoot extends HTMLElement {
   #main;
   #surface;
   #menus = [];
+  #historyMenu = null;
   #status;
   #toolbar;
   #notices;
@@ -95,11 +96,14 @@ export class AppRoot extends HTMLElement {
     for (const type of ['open', 'close', 'change', 'trail']) {
       store.addEventListener(type, this.#render);
     }
+    store.addEventListener('selection', this.#onSelectionChange);
     store.addEventListener('saving', this.#onSaving);
     store.addEventListener('saved', this.#onSaved);
     store.addEventListener('save-error', this.#onSaveError);
 
+    this.addEventListener('person:select', this.#onPersonSelect);
     this.addEventListener('person:focus', this.#onPersonFocus);
+    this.addEventListener('person:edit', this.#onPersonEdit);
     this.addEventListener('person:save', this.#onPersonSave);
     this.addEventListener('person:delete', this.#onPersonDelete);
     this.addEventListener('import:merge', this.#onImportMerge);
@@ -121,11 +125,14 @@ export class AppRoot extends HTMLElement {
     for (const type of ['open', 'close', 'change', 'trail']) {
       store.removeEventListener(type, this.#render);
     }
+    store.removeEventListener('selection', this.#onSelectionChange);
     store.removeEventListener('saving', this.#onSaving);
     store.removeEventListener('saved', this.#onSaved);
     store.removeEventListener('save-error', this.#onSaveError);
 
+    this.removeEventListener('person:select', this.#onPersonSelect);
     this.removeEventListener('person:focus', this.#onPersonFocus);
+    this.removeEventListener('person:edit', this.#onPersonEdit);
     this.removeEventListener('person:save', this.#onPersonSave);
     this.removeEventListener('person:delete', this.#onPersonDelete);
     this.removeEventListener('import:merge', this.#onImportMerge);
@@ -156,16 +163,21 @@ export class AppRoot extends HTMLElement {
       return button;
     };
 
+    this.#historyMenu = this.#menu(S.toolbar.history, [
+      { label: S.toolbar.undo, action: () => store.undo() },
+      { label: S.toolbar.redo, action: () => store.redo() },
+      { label: S.toolbar.back, action: () => store.goBack(), separatorBefore: true },
+    ]);
+
     this.#toolbar = el('div', {
       class: 'actions-inline',
       attrs: { role: 'toolbar', 'aria-label': S.a11y.toolbar },
       children: [
-        make('back', S.toolbar.back, () => store.goBack()),
-        make('edit', S.toolbar.edit, () => this.#editFocal()),
+        make('centre', S.toolbar.centreHere, () => store.setFocalPerson(store.selectedPersonId)),
+        make('edit', S.toolbar.edit, () => this.#editSelected()),
         make('relations', S.relations.open, () => this.#editRelations()),
 
-        // Two families of actions behind one label each. Eleven buttons in a
-        // row was a wall; this is the same reach, one click deeper.
+        // Families of actions folded behind one label each.
         this.#menu(S.toolbar.add, [
           { label: S.toolbar.addParent, action: () => this.#add(actions.addParentFor) },
           { label: S.toolbar.addPartner, action: () => this.#add(actions.addPartnerFor) },
@@ -173,9 +185,7 @@ export class AppRoot extends HTMLElement {
         ]),
 
         el('div', { class: 'divider' }),
-        make('undo', S.toolbar.undo, () => store.undo()),
-        make('redo', S.toolbar.redo, () => store.redo()),
-        el('div', { class: 'divider' }),
+        this.#historyMenu,
         make('review', S.toolbar.review, () => this.#openReview()),
 
         this.#menu(S.toolbar.transfer, [
@@ -195,7 +205,7 @@ export class AppRoot extends HTMLElement {
       ],
     });
 
-    this.#buttons.back.title = S.toolbar.backTo;
+    this.#buttons.centre.title = S.toolbar.centreHereHint;
 
     return el('header', {
       children: [
@@ -334,20 +344,42 @@ export class AppRoot extends HTMLElement {
     if (!open) return;
 
     this.#search.graph = store.graph;
-    this.#buttons.back.disabled = !store.canGoBack;
-    this.#buttons.undo.disabled = !store.canUndo;
-    this.#buttons.redo.disabled = !store.canRedo;
+    this.#buttons.centre.disabled = store.selectedPersonId === store.focalPersonId;
+    this.#historyMenu.setItemDisabled(0, !store.canUndo);
+    this.#historyMenu.setItemDisabled(1, !store.canRedo);
+    this.#historyMenu.setItemDisabled(2, !store.canGoBack);
 
     this.#depth.up.value = String(store.project.settings.maxGenerationsUp);
     this.#depth.down.value = String(store.project.settings.maxGenerationsDown);
 
-    const name = displayName(store.graph.persons.get(store.focalPersonId), locale);
-    this.#focal.title = `${S.toolbar.centredOn} ${name}`;
-    setChildren(this.#focal, [
-      el('span', { text: `${S.toolbar.centredOn} ` }),
-      el('b', { text: name }),
-    ]);
+    const focalName = displayName(store.graph.persons.get(store.focalPersonId), locale);
+    const selectedId = store.selectedPersonId;
+    const selectedName =
+      selectedId && selectedId !== store.focalPersonId
+        ? displayName(store.graph.persons.get(selectedId), locale)
+        : null;
+
+    this.#focal.title = selectedName
+      ? `${S.toolbar.centredOn} ${focalName} · ${S.toolbar.selected} ${selectedName}`
+      : `${S.toolbar.centredOn} ${focalName}`;
+
+    setChildren(
+      this.#focal,
+      selectedName
+        ? [
+            el('span', { text: `${S.toolbar.centredOn} ` }),
+            el('b', { text: focalName }),
+            el('span', { text: ` · ${S.toolbar.selected} ` }),
+            el('b', { text: selectedName }),
+          ]
+        : [el('span', { text: `${S.toolbar.centredOn} ` }), el('b', { text: focalName })],
+    );
   }
+
+  #onSelectionChange = () => {
+    this.#syncToolbar();
+    this.#tree?.setSelected(store.selectedPersonId);
+  };
 
   #onSaving = () => this.#setStatus(S.tree.saving);
   #onSaved = () => this.#setStatus(S.tree.saved);
@@ -364,14 +396,21 @@ export class AppRoot extends HTMLElement {
   // --- Intent handlers -----------------------------------------------------
 
   /**
-   * Clicking a person centres the tree on them. Clicking the person who is
-   * already centred opens the editor — one click, two obvious meanings, and no
-   * extra affordance on every card.
+   * Single click selects a person for toolbar actions without re-rooting the
+   * tree; double-click centres the tree on them; the hover icon edits directly.
    */
+  #onPersonSelect = (event) => {
+    store.setSelectedPerson(event.detail.personId);
+  };
+
   #onPersonFocus = (event) => {
+    store.setFocalPerson(event.detail.personId);
+  };
+
+  #onPersonEdit = (event) => {
     const { personId } = event.detail;
-    if (personId === store.focalPersonId) this.#editPerson(personId);
-    else store.setFocalPerson(personId);
+    store.setSelectedPerson(personId);
+    this.#editPerson(personId);
   };
 
   #onPersonSave = (event) => {
@@ -385,10 +424,10 @@ export class AppRoot extends HTMLElement {
   };
 
   #add(action) {
-    const focalId = store.focalPersonId;
-    if (focalId === null) return;
+    const targetId = store.selectedPersonId;
+    if (targetId === null) return;
 
-    const result = action(focalId);
+    const result = action(targetId);
     if (!result.ok) {
       this.#reportBlocked(result.errors);
       return;
@@ -398,8 +437,8 @@ export class AppRoot extends HTMLElement {
     this.#editPerson(result.person.id, { isNew: true });
   }
 
-  #editFocal() {
-    if (store.focalPersonId !== null) this.#editPerson(store.focalPersonId);
+  #editSelected() {
+    if (store.selectedPersonId !== null) this.#editPerson(store.selectedPersonId);
   }
 
   #editPerson(personId, { isNew = false } = {}) {
@@ -428,14 +467,14 @@ export class AppRoot extends HTMLElement {
    * the first click onwards.
    */
   #editRelations() {
-    if (store.focalPersonId === null) return;
+    if (store.selectedPersonId === null) return;
 
     if (!this.#relations) {
       this.#relations = document.createElement('relation-editor');
       this.shadowRoot.append(this.#relations);
     }
 
-    this.#relations.open(store.focalPersonId, () => store.graph);
+    this.#relations.open(store.selectedPersonId, () => store.graph);
   }
 
   /**
@@ -735,6 +774,7 @@ export class AppRoot extends HTMLElement {
     this.#tree.render({
       graph: store.graph,
       focalId: store.focalPersonId,
+      selectedId: store.selectedPersonId,
       issuesFor: (id) => store.issuesFor(id),
       resolvePhoto: (path) => store.photoUrl(path),
     });

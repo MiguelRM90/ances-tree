@@ -65,7 +65,7 @@ export const en = {
   tree: {
     empty: 'No one here yet.',
     addFirstPerson: 'Add the first person',
-    focusHint: 'Click a person to centre the tree on them. Click again to edit.',
+    focusHint: 'Click a person to select them, or double-click to centre the tree on them.',
     pinUnion: (couple) => `Keep the children of ${couple} highlighted`,
     saving: 'Saving…',
     saved: 'Saved',
@@ -73,13 +73,16 @@ export const en = {
   },
 
   toolbar: {
+    centreHere: 'Centre here',
+    centreHereHint: 'Centre the tree on the selected person',
     edit: 'Edit',
     addParent: 'Add parent',
     addPartner: 'Add partner',
     addChild: 'Add child',
     addPerson: 'Add person',
-    // Labels for the two menus the toolbar folds its families of actions into.
+    // Labels for the menus the toolbar folds its families of actions into.
     add: 'Add',
+    history: 'History',
     transfer: 'Import & export',
     undo: 'Undo',
     redo: 'Redo',
@@ -88,11 +91,12 @@ export const en = {
     exportGedcom: 'Export GEDCOM',
     importGedcom: 'Import GEDCOM',
     review: 'Review',
-    back: 'Back',
+    back: 'Back to previous focus',
     backTo: 'Back to the previous person',
     ancestors: 'Up',
     descendants: 'Down',
     centredOn: 'Centred on',
+    selected: 'Selected:',
     generationsUp: 'Generations shown above the centred person',
     generationsDown: 'Generations shown below the centred person',
     language: 'Language',
@@ -210,6 +214,7 @@ export const en = {
   },
 
   card: {
+    edit: (name) => `Edit ${name}`,
     issues: (n) => `${n} ${n === 1 ? 'check' : 'checks'} on this person`,
     hasNote: 'Has a written note',
     hasDocuments: (n) => `${n} ${n === 1 ? 'attached document' : 'attached documents'}`,
@@ -292,7 +297,8 @@ export const en = {
   /** Accessible names for things whose meaning is only visual. */
   a11y: {
     tree: 'Family tree',
-    treeHint: 'Use the arrow keys to move between people. Press Enter to centre the tree.',
+    treeHint:
+      'Use the arrow keys to move between people. Press Enter to select or double-click to centre the tree.',
     toolbar: 'Family actions',
     dateKind: 'Kind of date',
     notifications: 'Notifications',

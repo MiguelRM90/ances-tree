@@ -38,6 +38,7 @@ class Store extends EventTarget {
   #redo = [];
   /** Where the user has been, so "back" means something. Not an edit history. */
   #trail = [];
+  #selectedPersonId = null;
 
   get project() {
     return this.#project;
@@ -63,6 +64,10 @@ class Store extends EventTarget {
 
   get focalPersonId() {
     return this.#project?.settings.focalPersonId ?? null;
+  }
+
+  get selectedPersonId() {
+    return this.#selectedPersonId ?? this.focalPersonId;
   }
 
   // --- Project lifecycle ---------------------------------------------------
@@ -99,6 +104,7 @@ class Store extends EventTarget {
     this.#dataDirty = false;
     this.#undo = [];
     this.#redo = [];
+    this.#selectedPersonId = null;
     this.#emit('close');
   }
 
@@ -110,6 +116,7 @@ class Store extends EventTarget {
     this.#undo = [];
     this.#redo = [];
     this.#trail = [];
+    this.#selectedPersonId = project.settings?.focalPersonId ?? null;
     this.#reindex();
   }
 
@@ -216,8 +223,12 @@ class Store extends EventTarget {
    */
   setFocalPerson(personId, { remember = true } = {}) {
     const previous = this.focalPersonId;
-    if (personId === previous) return { ok: true };
+    if (personId === previous) {
+      this.setSelectedPerson(personId);
+      return { ok: true };
+    }
 
+    this.#selectedPersonId = personId;
     const result = this.updateSettings({ focalPersonId: personId }, { label: 'focus' });
 
     if (result.ok && remember && previous !== null) {
@@ -227,6 +238,20 @@ class Store extends EventTarget {
     }
 
     return result;
+  }
+
+  /**
+   * Selects a person for toolbar and inspector actions without re-rooting the
+   * tree layout.
+   */
+  setSelectedPerson(personId) {
+    if (!this.#project) return { ok: false };
+    if (personId !== null && !this.#indexes?.persons.has(personId)) return { ok: false };
+    if (this.selectedPersonId === personId) return { ok: true };
+
+    this.#selectedPersonId = personId;
+    this.#emit('selection', { personId: this.selectedPersonId });
+    return { ok: true };
   }
 
   /** Steps back to whoever was centred before. */
@@ -241,6 +266,9 @@ class Store extends EventTarget {
 
   #reindex() {
     this.#indexes = buildIndexes(this.#project);
+    if (this.#selectedPersonId !== null && !this.#indexes.persons.has(this.#selectedPersonId)) {
+      this.#selectedPersonId = this.focalPersonId;
+    }
     this.#issues = validateAll(this.#indexes);
 
     // The blocking errors the project already carries. Anything in here is

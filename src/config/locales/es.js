@@ -72,7 +72,8 @@ export const es = {
   tree: {
     empty: 'Todavía no hay nadie.',
     addFirstPerson: 'Añadir la primera persona',
-    focusHint: 'Haz clic en una persona para centrar el árbol en ella. Otro clic para editarla.',
+    focusHint:
+      'Haz clic en una persona para seleccionarla, o doble clic para centrar el árbol en ella.',
     pinUnion: (couple) => `Mantener resaltados los hijos de ${couple}`,
     saving: 'Guardando…',
     saved: 'Guardado',
@@ -80,13 +81,16 @@ export const es = {
   },
 
   toolbar: {
+    centreHere: 'Centrar aquí',
+    centreHereHint: 'Centrar el árbol en la persona seleccionada',
     edit: 'Editar',
     addParent: 'Añadir progenitor',
     addPartner: 'Añadir pareja',
     addChild: 'Añadir hijo',
     addPerson: 'Añadir persona',
-    // Etiquetas de los dos menús en los que la barra agrupa sus acciones.
+    // Etiquetas de los menús en los que la barra agrupa sus acciones.
     add: 'Añadir',
+    history: 'Historial',
     transfer: 'Importar y exportar',
     undo: 'Deshacer',
     redo: 'Rehacer',
@@ -95,11 +99,12 @@ export const es = {
     exportGedcom: 'Exportar GEDCOM',
     importGedcom: 'Importar GEDCOM',
     review: 'Revisar',
-    back: 'Atrás',
+    back: 'Volver al foco anterior',
     backTo: 'Volver a la persona anterior',
     ancestors: 'Arriba',
     descendants: 'Abajo',
     centredOn: 'Centrado en',
+    selected: 'Seleccionado:',
     generationsUp: 'Generaciones mostradas por encima de la persona central',
     generationsDown: 'Generaciones mostradas por debajo de la persona central',
     language: 'Idioma',
@@ -213,6 +218,7 @@ export const es = {
   },
 
   card: {
+    edit: (name) => `Editar a ${name}`,
     issues: (n) => `${n} ${n === 1 ? 'aviso' : 'avisos'} sobre esta persona`,
     hasNote: 'Tiene una nota escrita',
     hasDocuments: (n) => `${n} ${n === 1 ? 'documento adjunto' : 'documentos adjuntos'}`,
@@ -294,7 +300,8 @@ export const es = {
 
   a11y: {
     tree: 'Árbol genealógico',
-    treeHint: 'Usa las flechas para moverte entre personas. Pulsa Intro para centrar el árbol.',
+    treeHint:
+      'Usa las flechas para moverte entre personas. Pulsa Intro para seleccionar o doble clic para centrar el árbol.',
     toolbar: 'Acciones de la familia',
     dateKind: 'Tipo de fecha',
     notifications: 'Notificaciones',

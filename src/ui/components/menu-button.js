@@ -54,7 +54,9 @@ export class MenuButton extends HTMLElement {
     this.#trigger.textContent = text;
   }
 
-  /** @param {Array<{label: string, action: Function, separatorBefore?: boolean}>} items */
+  /**
+   * @param {Array<{label: string, action: Function, separatorBefore?: boolean, disabled?: boolean}>} items
+   */
   set items(items) {
     this.#items = items;
 
@@ -65,7 +67,9 @@ export class MenuButton extends HTMLElement {
           text: item.label,
           attrs: { type: 'button', role: 'menuitem' },
         });
+        button.disabled = Boolean(item.disabled);
         button.addEventListener('click', () => {
+          if (button.disabled) return;
           this.close();
           item.action();
         });
@@ -76,6 +80,11 @@ export class MenuButton extends HTMLElement {
           : [entry];
       }),
     );
+  }
+
+  setItemDisabled(index, disabled) {
+    const buttons = this.#buttons();
+    if (buttons[index]) buttons[index].disabled = Boolean(disabled);
   }
 
   get open() {
@@ -95,12 +104,14 @@ export class MenuButton extends HTMLElement {
 
     this.#menu.hidden = false;
     this.#trigger.setAttribute('aria-expanded', 'true');
-    if (focusFirst) this.#buttons()[0]?.focus();
+    if (focusFirst) this.#enabledButtons()[0]?.focus();
   }
 
   #toggle = () => (this.open ? this.close() : this.#show(false));
 
   #buttons = () => [...this.#menu.querySelectorAll('button')];
+
+  #enabledButtons = () => [...this.#menu.querySelectorAll('button:not(:disabled)')];
 
   #onTriggerKey = (event) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -119,7 +130,8 @@ export class MenuButton extends HTMLElement {
     if (step === 0) return;
 
     event.preventDefault();
-    const buttons = this.#buttons();
+    const buttons = this.#enabledButtons();
+    if (buttons.length === 0) return;
     const at = buttons.indexOf(this.#menu.querySelector('button:focus'));
     buttons[(at + step + buttons.length) % buttons.length]?.focus();
   };

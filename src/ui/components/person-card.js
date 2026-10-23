@@ -30,6 +30,10 @@ import './person-photo.js';
 const styles = sheet(css);
 
 export class PersonCard extends HTMLElement {
+  static get observedAttributes() {
+    return ['focal', 'selected'];
+  }
+
   #person = null;
   #issues = [];
   #graph = null;
@@ -53,10 +57,26 @@ export class PersonCard extends HTMLElement {
     // direct child of role="tree".
     this.setAttribute('role', 'none');
     this.#button.addEventListener('click', this.#onClick);
+    this.#button.addEventListener('dblclick', this.#onDblClick);
+    this.#syncAriaState();
   }
 
   disconnectedCallback() {
     this.#button.removeEventListener('click', this.#onClick);
+    this.#button.removeEventListener('dblclick', this.#onDblClick);
+  }
+
+  attributeChangedCallback() {
+    this.#syncAriaState();
+  }
+
+  #syncAriaState() {
+    this.#button.setAttribute('aria-selected', String(this.hasAttribute('selected')));
+    if (this.hasAttribute('focal')) {
+      this.#button.setAttribute('aria-current', 'true');
+    } else {
+      this.#button.removeAttribute('aria-current');
+    }
   }
 
   set person(value) {
@@ -110,8 +130,18 @@ export class PersonCard extends HTMLElement {
     this.#button.focus(options);
   }
 
-  #onClick = () => {
-    if (this.#person) emit(this, 'person:focus', { personId: this.#person.id });
+  #onClick = (event) => {
+    if (!this.#person) return;
+    if (event.target.closest('.edit-mark')) {
+      emit(this, 'person:edit', { personId: this.#person.id });
+      return;
+    }
+    emit(this, 'person:select', { personId: this.#person.id });
+  };
+
+  #onDblClick = (event) => {
+    if (!this.#person || event.target.closest('.edit-mark')) return;
+    emit(this, 'person:focus', { personId: this.#person.id });
   };
 
   #render() {
@@ -145,6 +175,7 @@ export class PersonCard extends HTMLElement {
       }),
       el('span', { class: 'dates', text: lifespan }),
       this.#marks(person.notes, docs),
+      this.#editMark(name, notes.length > 0),
       this.#flag(notes),
     ]);
 
@@ -166,7 +197,32 @@ export class PersonCard extends HTMLElement {
         .filter(Boolean)
         .join('. '),
     );
-    this.#button.setAttribute('aria-selected', String(this.hasAttribute('focal')));
+    this.#syncAriaState();
+  }
+
+  /**
+   * Quick-edit icon shown on pointer hover (desktop), allowing direct opening
+   * of the person editor with a single click without changing selection first.
+   */
+  #editMark(name, hasFlag) {
+    const icon = svg('svg', {
+      viewBox: '0 0 16 16',
+      fill: 'currentColor',
+      'aria-hidden': 'true',
+      focusable: 'false',
+    });
+
+    icon.append(
+      svg('path', {
+        d: 'M11.8 1.5a1.5 1.5 0 0 1 2.1 0l.6.6a1.5 1.5 0 0 1 0 2.1l-8.5 8.5-3.3.8.8-3.3 8.3-8.7Zm1.4.7a.5.5 0 0 0-.7 0l-1 1 1.4 1.4 1-1a.5.5 0 0 0 0-.7l-.7-.7Zm-2.4 2.4L4.3 11.1l-.4 1.8 1.8-.4 6.5-6.5-1.4-1.4Z',
+      }),
+    );
+
+    return el('span', {
+      class: ['edit-mark', hasFlag ? 'with-flag' : ''],
+      attrs: { title: S.card.edit(name), 'aria-hidden': 'true' },
+      children: [icon],
+    });
   }
 
   /**

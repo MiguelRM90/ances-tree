@@ -45,8 +45,8 @@
   white-space: nowrap;
 }
 
-.menu button:hover,
-.menu button:focus-visible {
+.menu button:not(:disabled):hover,
+.menu button:not(:disabled):focus-visible {
   background: var(--c-accent-soft);
   border: 0;
 }
