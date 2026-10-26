@@ -1,7 +1,7 @@
 :host {
   position: relative;
   display: block;
-  min-width: 14rem;
+  min-width: 11rem;
 }
 
 input {

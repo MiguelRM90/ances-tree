@@ -188,7 +188,7 @@ export class PersonCard extends HTMLElement {
       'aria-label',
       [
         name,
-        countryName(person.nationality),
+        countryName(person.nationality, locale),
         lifespan,
         person.notes && S.card.hasNote,
         docText,
@@ -243,7 +243,7 @@ export class PersonCard extends HTMLElement {
       class: flag ? 'flagchip' : 'codechip',
       text: flag || code,
       dataset: flag ? {} : { country: code },
-      attrs: { title: countryName(code), 'aria-hidden': 'true' },
+      attrs: { title: countryName(code, locale), 'aria-hidden': 'true' },
     });
   }
 

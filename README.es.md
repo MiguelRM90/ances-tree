@@ -22,16 +22,16 @@ Sin cuentas · Sin nube · Sin suscripciones · Cero dependencias de runtime
 
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-tree-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-tree-light.png" />
-    <img alt="Vista del árbol genealógico multigeneracional en AncesTree" src="docs/assets/hero-tree-light.png" width="100%" />
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-tree-dark.es.png" />
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-tree-light.es.png" />
+    <img alt="Vista del árbol genealógico multigeneracional en AncesTree" src="docs/assets/hero-tree-light.es.png" width="100%" />
   </picture>
   <p><em>5 generaciones renderizadas en una sola vista con doble apellido español, fechas históricas difusas, filiación adoptiva y detección automática de consanguinidad. <strong>Pulsa «Probar con una familia de ejemplo» en la pantalla de bienvenida para explorarlo en 1 clic.</strong></em></p>
 </div>
 
-|                                    Editor de Persona y Fechas Históricas Difusas                                     |                                       Revisión del Archivo y Detección de Consanguinidad                                       |
-| :------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------: |
-| <img src="docs/assets/person-editor.png" alt="Editor de persona con dos apellidos y rango de fechas" width="100%" /> | <img src="docs/assets/review-panel.png" alt="Panel de revisión mostrando detección de matrimonio consanguíneo" width="100%" /> |
+|                                      Editor de Persona y Fechas Históricas Difusas                                      |                                        Revisión del Archivo y Detección de Consanguinidad                                         |
+| :---------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------: |
+| <img src="docs/assets/person-editor.es.png" alt="Editor de persona con dos apellidos y rango de fechas" width="100%" /> | <img src="docs/assets/review-panel.es.png" alt="Panel de revisión mostrando detección de matrimonio consanguíneo" width="100%" /> |
 
 ---
 

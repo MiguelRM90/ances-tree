@@ -1,5 +1,5 @@
 import { el, setChildren } from '../dom.js';
-import { S } from '../../config/strings.js';
+import { S, locale } from '../../config/strings.js';
 import { countriesByName, countryFlag } from '../../domain/model/countries.js';
 import { supportsFlagEmoji } from '../flag-support.js';
 import { base, sheet } from '../styles/sheets.js';
@@ -40,7 +40,7 @@ export class CountrySearch extends HTMLElement {
     const flags = supportsFlagEmoji();
     this.#countries = [
       { code: '', name: S.editor.noNationality, label: S.editor.noNationality },
-      ...countriesByName().map(({ code, name }) => ({
+      ...countriesByName(locale).map(({ code, name }) => ({
         code,
         name,
         label: flags ? `${countryFlag(code)}  ${name}` : `${name}  (${code})`,
