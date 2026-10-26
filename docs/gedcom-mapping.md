@@ -12,7 +12,7 @@ GEDCOM is **phase 2**, but this table is written **before the model is finalized
 
 Everything else follows from that:
 
-- It is accepted that the exported GEDCOM **loses information**. What gets documented is *what* is lost
+- It is accepted that the exported GEDCOM **loses information**. What gets documented is _what_ is lost
 - A GEDCOM export→import cycle **is not lossless**. The faithful copy is the ZIP, and the user is told so in the export dialog
 - The app state is never stored in GEDCOM alone
 
@@ -24,14 +24,14 @@ Everything else follows from that:
 
 Differences to handle:
 
-| | 5.5.1 | 7.0 |
-|---|---|---|
-| Encoding | ANSEL, ASCII, UNICODE, UTF-8 | **UTF-8 mandatory** |
-| Line length | 255 characters → `CONC`/`CONT` | No practical limit |
-| Extensions | Tags with a leading `_`, undeclared | Declared in `HEAD.SCHMA` with a URI |
-| Line ending | `\r\n` usual | `\r\n` or `\n` |
+|             | 5.5.1                               | 7.0                                 |
+| ----------- | ----------------------------------- | ----------------------------------- |
+| Encoding    | ANSEL, ASCII, UNICODE, UTF-8        | **UTF-8 mandatory**                 |
+| Line length | 255 characters → `CONC`/`CONT`      | No practical limit                  |
+| Extensions  | Tags with a leading `_`, undeclared | Declared in `HEAD.SCHMA` with a URI |
+| Line ending | `\r\n` usual                        | `\r\n` or `\n`                      |
 
-ANSEL is an encoding from the 1980s that still shows up in real files and that no browser decodes natively. **If `CHAR ANSEL` appears, the user is warned that accented characters may arrive corrupted** and the file is imported as Latin-1, which is the least bad approximation; implementing a full ANSEL table is out of scope.
+ANSEL is an encoding from the 1980s that still shows up in real files and that no browser decodes natively. **If `CHAR ANSEL` appears, the user is warned that accented characters may arrive corrupted** and the file is imported as Latin-1, which is the least bad approximation; implementing a full ANSEL table is out of scope. In GEDCOM 5.5.1, `CHAR UNICODE` refers to 16-bit UCS-2 / UTF-16 (`utf-16le` or `utf-16be`), which is detected via BOM, null-byte heuristics, and `1 CHAR` header inspection before parsing.
 
 ---
 
@@ -62,25 +62,25 @@ The `xref`s (`@I1@`, `@F1@`, `@O1@`) are generated **sequentially and stably wit
 
 ## `Person` → `INDI`
 
-| Model field | GEDCOM | Notes |
-|---|---|---|
-| `id` | `@I{n}@` | Via the UUID→xref map |
-| `firstName` + surnames | `1 NAME Juan /García Pérez/` | Surnames go between slashes |
-| `firstName` | `2 GIVN Juan` | Redundant but widely supported |
-| `lastName` + `secondLastName` | `2 SURN García Pérez` | GEDCOM has **a single** surname field |
-| `secondLastName` | `2 _SURN2 Pérez` | Extension: preserves the separation for our own round-trip |
-| `alsoKnownAs[]` | additional `1 NAME ...` with `2 TYPE aka` | |
-| `sex` | `1 SEX M` | Direct: `M`/`F`/`U`/`X`. This is why this enum was chosen |
-| `nationality` | `1 NATI ES` | `NATI` is a standard 5.5.1 attribute |
-| `birth.date` | `1 BIRT` / `2 DATE ...` | See *Dates* |
-| `birth.place` | `2 PLAC Cuenca, España` | |
-| `death.date` | `1 DEAT` / `2 DATE ...` | |
-| `death.place` | `2 PLAC ...` | |
-| `notes` | `1 NOTE ...` | With `CONC`/`CONT` if it exceeds 255 in 5.5.1 |
-| linked `media` | `1 OBJE @O{n}@` | |
-| — | `1 FAMC @F{n}@` | Family in which the person is a child. Derived from `ParentChild` |
-| — | `1 FAMS @F{n}@` | Families in which the person is a spouse. Derived from `Union` |
-| `createdAt` / `updatedAt` | `1 CHAN` / `2 DATE` | `updatedAt` only; GEDCOM has no creation date |
+| Model field                   | GEDCOM                                    | Notes                                                             |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------------------------- |
+| `id`                          | `@I{n}@`                                  | Via the UUID→xref map                                             |
+| `firstName` + surnames        | `1 NAME Juan /García Pérez/`              | Surnames go between slashes                                       |
+| `firstName`                   | `2 GIVN Juan`                             | Redundant but widely supported                                    |
+| `lastName` + `secondLastName` | `2 SURN García Pérez`                     | GEDCOM has **a single** surname field                             |
+| `secondLastName`              | `2 _SURN2 Pérez`                          | Extension: preserves the separation for our own round-trip        |
+| `alsoKnownAs[]`               | additional `1 NAME ...` with `2 TYPE aka` |                                                                   |
+| `sex`                         | `1 SEX M`                                 | Direct: `M`/`F`/`U`/`X`. This is why this enum was chosen         |
+| `nationality`                 | `1 NATI ES`                               | `NATI` is a standard 5.5.1 attribute                              |
+| `birth.date`                  | `1 BIRT` / `2 DATE ...`                   | See _Dates_                                                       |
+| `birth.place`                 | `2 PLAC Cuenca, España`                   |                                                                   |
+| `death.date`                  | `1 DEAT` / `2 DATE ...`                   |                                                                   |
+| `death.place`                 | `2 PLAC ...`                              |                                                                   |
+| `notes`                       | `1 NOTE ...`                              | With `CONC`/`CONT` if it exceeds 255 in 5.5.1                     |
+| linked `media`                | `1 OBJE @O{n}@`                           |                                                                   |
+| —                             | `1 FAMC @F{n}@`                           | Family in which the person is a child. Derived from `ParentChild` |
+| —                             | `1 FAMS @F{n}@`                           | Families in which the person is a spouse. Derived from `Union`    |
+| `createdAt` / `updatedAt`     | `1 CHAN` / `2 DATE`                       | `updatedAt` only; GEDCOM has no creation date                     |
 
 **Placeholder persons** (`isPlaceholder: true`): they are emitted as an `INDI` **without `NAME`**, which is the usual convention and what other applications expect. On re-import, an `INDI` with no `NAME`, dates, or notes is marked as `isPlaceholder`. This is a heuristic, not a guarantee, and is documented as such.
 
@@ -88,16 +88,16 @@ The `xref`s (`@I1@`, `@F1@`, `@O1@`) are generated **sequentially and stably wit
 
 ## `Union` → `FAM`
 
-| Model field | GEDCOM | Notes |
-|---|---|---|
-| `id` | `@F{n}@` | |
-| `partner1Id` / `partner2Id` | `1 HUSB @I{n}@` / `1 WIFE @I{n}@` | See problem below |
-| `type: MARRIED` | `1 MARR` + `2 DATE` | |
-| `type: PARTNERS` / `CASUAL` | `FAM` **without** `MARR` | See below |
-| `startDate` | `1 MARR` / `2 DATE ...` | |
-| `endDate` | `1 DIV` / `2 DATE ...` | |
-| `notes` | `1 NOTE ...` | |
-| children (via `ParentChild`) | `1 CHIL @I{n}@` | |
+| Model field                  | GEDCOM                            | Notes             |
+| ---------------------------- | --------------------------------- | ----------------- |
+| `id`                         | `@F{n}@`                          |                   |
+| `partner1Id` / `partner2Id`  | `1 HUSB @I{n}@` / `1 WIFE @I{n}@` | See problem below |
+| `type: MARRIED`              | `1 MARR` + `2 DATE`               |                   |
+| `type: PARTNERS` / `CASUAL`  | `FAM` **without** `MARR`          | See below         |
+| `startDate`                  | `1 MARR` / `2 DATE ...`           |                   |
+| `endDate`                    | `1 DIV` / `2 DATE ...`            |                   |
+| `notes`                      | `1 NOTE ...`                      |                   |
+| children (via `ParentChild`) | `1 CHIL @I{n}@`                   |                   |
 
 ### Problem: `HUSB`/`WIFE` impose sex
 
@@ -139,13 +139,13 @@ This is the most serious structural mismatch, and it should be understood before
 
 `PEDI` values in 5.5.1: `birth`, `adopted`, `foster`, `sealing`.
 
-| `ParentChild.type` | `PEDI` |
-|---|---|
-| `BIOLOGICAL` | `birth` |
-| `ADOPTED` | `adopted` |
-| `FOSTER` | `foster` |
-| `STEP` | `foster` + extension (does not exist in 5.5.1) |
-| `GUARDIAN` | `foster` + extension |
+| `ParentChild.type` | `PEDI`                                         |
+| ------------------ | ---------------------------------------------- |
+| `BIOLOGICAL`       | `birth`                                        |
+| `ADOPTED`          | `adopted`                                      |
+| `FOSTER`           | `foster`                                       |
+| `STEP`             | `foster` + extension (does not exist in 5.5.1) |
+| `GUARDIAN`         | `foster` + extension                           |
 
 ### The case GEDCOM cannot express
 
@@ -168,17 +168,17 @@ Available mechanisms, in order of preference:
 
 The model's `raw` field **is, essentially, the value of a GEDCOM `DATE`**. It was designed that way on purpose, and it makes this mapping almost trivial.
 
-| `kind` | Emitted `DATE` |
-|---|---|
-| `EXACT` | `12 MAY 1912` |
-| `PARTIAL` | `MAY 1912` / `1912` |
-| `ABOUT` | `ABT 1885` |
-| `ESTIMATED` | `EST 1885` |
-| `CALCULATED` | `CAL 1885` |
-| `BEFORE` | `BEF 1900` |
-| `AFTER` | `AFT 1900` |
-| `BETWEEN` | `BET 1900 AND 1905` |
-| `UNKNOWN` | The entire `DATE` is omitted |
+| `kind`       | Emitted `DATE`               |
+| ------------ | ---------------------------- |
+| `EXACT`      | `12 MAY 1912`                |
+| `PARTIAL`    | `MAY 1912` / `1912`          |
+| `ABOUT`      | `ABT 1885`                   |
+| `ESTIMATED`  | `EST 1885`                   |
+| `CALCULATED` | `CAL 1885`                   |
+| `BEFORE`     | `BEF 1900`                   |
+| `AFTER`      | `AFT 1900`                   |
+| `BETWEEN`    | `BET 1900 AND 1905`          |
+| `UNKNOWN`    | The entire `DATE` is omitted |
 
 Formatting rules:
 
@@ -201,13 +201,13 @@ In 5.5.1 it is emitted as a level-0 record and referenced from `INDI` and `FAM`:
 1 NOTE Taken 1952
 ```
 
-| Model field | GEDCOM |
-|---|---|
-| `path` | `1 FILE` — **relative path**, the same as in the folder and the ZIP |
-| `mime` | `2 FORM jpeg` (`jpeg`, `png`, `webp`, `pdf`, `docx`, `xlsx`, etc.) |
-| `caption` | `2 TITL` |
-| `takenDate` | `1 NOTE` (5.5.1 has no media date) |
-| `links[]` | `1 OBJE @O1@` on each `INDI`/`FAM` |
+| Model field | GEDCOM                                                              |
+| ----------- | ------------------------------------------------------------------- |
+| `path`      | `1 FILE` — **relative path**, the same as in the folder and the ZIP |
+| `mime`      | `2 FORM jpeg` (`jpeg`, `png`, `webp`, `pdf`, `docx`, `xlsx`, etc.)  |
+| `caption`   | `2 TITL`                                                            |
+| `takenDate` | `1 NOTE` (5.5.1 has no media date)                                  |
+| `links[]`   | `1 OBJE @O1@` on each `INDI`/`FAM`                                  |
 
 The relative path works because the `.ged` lives **inside the same folder or ZIP** as the `photos/` and `documents/` folders (see [storage.md](storage.md#project-folder-structure)). When importing a standalone `.ged`, with no binaries alongside it, the `OBJE` records are registered as missing media and the user is offered the chance to locate the folder.
 
@@ -219,18 +219,18 @@ The relative path works because the `.ged` lives **inside the same folder or ZIP
 
 These fields exist only in `family.json`. They are listed here to make clear why the ZIP —and not the `.ged`— is the real copy.
 
-| Field | Export destination | Recoverable on re-import |
-|---|---|---|
-| `ParentChild.certainty` | `_CERT` extension | Only from our own GEDCOM |
-| Exact `Union.type` (`PARTNERS` vs `CASUAL`) | `_UTYPE` extension | Same |
-| `Person.isPlaceholder` | Heuristic (`INDI` without `NAME`) | Approximate |
-| `MediaLink.role` (`PORTRAIT`/`ATTACHMENT`) | `_ROLE` extension | Own only |
-| `MediaObject.hash` | `_HASH` extension | Own only |
-| `MediaObject.exifStripped` | Lost | No |
-| `GenealogicalDate.earliest/latest` | Recalculated from `raw` | Yes, derived |
-| `settings` (focal person, generations) | Lost | No |
-| `Person.createdAt` | Lost | No |
-| `schemaVersion` | Lost | No |
+| Field                                       | Export destination                | Recoverable on re-import |
+| ------------------------------------------- | --------------------------------- | ------------------------ |
+| `ParentChild.certainty`                     | `_CERT` extension                 | Only from our own GEDCOM |
+| Exact `Union.type` (`PARTNERS` vs `CASUAL`) | `_UTYPE` extension                | Same                     |
+| `Person.isPlaceholder`                      | Heuristic (`INDI` without `NAME`) | Approximate              |
+| `MediaLink.role` (`PORTRAIT`/`ATTACHMENT`)  | `_ROLE` extension                 | Own only                 |
+| `MediaObject.hash`                          | `_HASH` extension                 | Own only                 |
+| `MediaObject.exifStripped`                  | Lost                              | No                       |
+| `GenealogicalDate.earliest/latest`          | Recalculated from `raw`           | Yes, derived             |
+| `settings` (focal person, generations)      | Lost                              | No                       |
+| `Person.createdAt`                          | Lost                              | No                       |
+| `schemaVersion`                             | Lost                              | No                       |
 
 ### Extension tags
 
@@ -264,14 +264,14 @@ The separation is preserved in the `_SURN2` extension, so that our own import ca
 
 **Export before import.** Export is deterministic and is tested against the model itself; import has to face whatever other applications have produced, which is an open-ended problem.
 
-| | Status |
-|---|---|
-| 5.5.1 export of `INDI` + `FAM` + dates | ✅ Done |
-| `OBJE` export | ✅ Done |
-| `family.ged` included in every exported ZIP | ✅ Done |
-| Import: tolerant lexer and parser | ✅ Done |
-| Import of `INDI` + `FAM` + `OBJE` | ✅ Done |
-| 7.0 export | ❌ Pending |
+|                                                | Status     |
+| ---------------------------------------------- | ---------- |
+| 5.5.1 export of `INDI` + `FAM` + dates         | ✅ Done    |
+| `OBJE` export                                  | ✅ Done    |
+| `family.ged` included in every exported ZIP    | ✅ Done    |
+| Import: tolerant lexer and parser              | ✅ Done    |
+| Import of `INDI` + `FAM` + `OBJE`              | ✅ Done    |
+| 7.0 export                                     | ❌ Pending |
 | Test corpus with files from other applications | ❌ Pending |
 
 **Round-trip verified on 10,000 people**: 2.87 MB of GEDCOM, exported and imported with **0 warnings**, and 9,971 people / 4,266 unions / 14,432 links identical on both sides. All names, all literal dates, the 591 placeholder persons, and the 8,442 nationalities survive.

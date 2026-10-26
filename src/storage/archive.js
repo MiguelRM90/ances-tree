@@ -25,6 +25,7 @@ import { buildManifest, loadProject, writeProject, newDirectory } from './projec
 import { parseProject } from '../domain/model/schema.js';
 import { exportGedcom } from '../domain/gedcom/export.js';
 import { importGedcom } from '../domain/gedcom/import.js';
+import { decodeGedcom, readFileWithEncoding } from '../domain/gedcom/parser.js';
 import {
   MAX_ZIP_ENTRIES,
   MAX_UNZIPPED_BYTES,
@@ -32,7 +33,7 @@ import {
   MAX_JSON_BYTES,
 } from '../config/limits.js';
 
-export { GEDCOM_FILE };
+export { GEDCOM_FILE, decodeGedcom, readFileWithEncoding };
 
 const ZIP_TYPES = [{ description: 'AncesTree archive', accept: { 'application/zip': ['.zip'] } }];
 const GEDCOM_TYPES = [
@@ -63,27 +64,14 @@ export async function pickAndReadGedcom() {
     throw new StorageError('TOO_LARGE', 'That GEDCOM is larger than the allowed maximum');
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const result = importGedcom(decodeGedcom(bytes), { title: file.name.replace(/\.ged$/i, '') });
+  const text = await readFileWithEncoding(file);
+  const result = importGedcom(text, { title: file.name.replace(/\.ged$/i, '') });
 
   if (result.counts.persons === 0) {
     throw new StorageError('EMPTY_GEDCOM', 'No people found in that file');
   }
 
   return { ...result, fileName: file.name };
-}
-
-/**
- * GEDCOM 7 is UTF-8; 5.5.1 also allowed ANSEL and Latin-1, and files in the
- * wild still are. ANSEL is an encoding from the 1980s that no browser decodes,
- * so it is read as Latin-1 — the least wrong approximation — and reported.
- */
-function decodeGedcom(bytes) {
-  const head = new TextDecoder('utf-8').decode(bytes.slice(0, 4096));
-  const declared = /\n1 CHAR (\S+)/.exec(head)?.[1]?.toUpperCase() ?? 'UTF-8';
-
-  const label = declared === 'UTF-8' || declared === 'UNICODE' ? 'utf-8' : 'windows-1252';
-  return new TextDecoder(label).decode(bytes);
 }
 
 /** Exports a standalone .ged to wherever the platform can put one. Needs a gesture. */

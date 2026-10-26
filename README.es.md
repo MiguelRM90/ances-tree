@@ -109,7 +109,7 @@ abrirse.
 ```bash
 pnpm install
 pnpm dev         # http://localhost:5173/ances-tree/
-pnpm test        # 319 tests, en un navegador real
+pnpm test        # 325 tests, en un navegador real
 pnpm run lint
 pnpm run build   # dist/, listo para GitHub Pages
 ```

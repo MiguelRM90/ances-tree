@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { parseGedcom } from '../src/domain/gedcom/parser.js';
+import { parseGedcom, decodeGedcom, readFileWithEncoding } from '../src/domain/gedcom/parser.js';
 import { importGedcom } from '../src/domain/gedcom/import.js';
 import { exportGedcom } from '../src/domain/gedcom/export.js';
 import { ParentType, UnionType, Sex } from '../src/domain/model/factories.js';
@@ -94,6 +94,95 @@ describe('GEDCOM parser', () => {
     const { version, encoding } = parseGedcom(MINIMAL);
     expect(version).to.equal('5.5.1');
     expect(encoding).to.equal('UTF-8');
+  });
+});
+
+function encodeUtf16(text, { bigEndian = false, bom = false } = {}) {
+  const offset = bom ? 2 : 0;
+  const bytes = new Uint8Array(offset + text.length * 2);
+  if (bom) {
+    bytes[0] = bigEndian ? 0xfe : 0xff;
+    bytes[1] = bigEndian ? 0xff : 0xfe;
+  }
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    const high = (code >> 8) & 0xff;
+    const low = code & 0xff;
+    bytes[offset + i * 2] = bigEndian ? high : low;
+    bytes[offset + i * 2 + 1] = bigEndian ? low : high;
+  }
+  return bytes;
+}
+
+describe('GEDCOM encoding detection', () => {
+  const UNICODE_GED = ged(
+    '0 HEAD',
+    '1 GEDC',
+    '2 VERS 5.5.1',
+    '1 CHAR UNICODE',
+    '0 @I1@ INDI',
+    '1 NAME Inés /Nuñez/',
+    '1 SEX F',
+    '0 TRLR',
+  );
+
+  it('decodes UTF-16LE with a BOM', async () => {
+    const bytes = encodeUtf16(UNICODE_GED, { bigEndian: false, bom: true });
+    const text = await readFileWithEncoding(new Blob([bytes]));
+    const { project, counts } = importGedcom(text);
+
+    expect(counts.persons).to.equal(1);
+    expect(displayName(project.persons[0])).to.equal('Inés Nuñez');
+  });
+
+  it('decodes UTF-16BE with a BOM', async () => {
+    const bytes = encodeUtf16(UNICODE_GED, { bigEndian: true, bom: true });
+    const text = await readFileWithEncoding(new Blob([bytes]));
+    const { project, counts } = importGedcom(text);
+
+    expect(counts.persons).to.equal(1);
+    expect(displayName(project.persons[0])).to.equal('Inés Nuñez');
+  });
+
+  it('decodes BOM-less UTF-16LE declared as UNICODE', async () => {
+    const bytes = encodeUtf16(UNICODE_GED, { bigEndian: false, bom: false });
+    const text = await readFileWithEncoding(new Blob([bytes]));
+    const { project, counts } = importGedcom(text);
+
+    expect(counts.persons).to.equal(1);
+    expect(displayName(project.persons[0])).to.equal('Inés Nuñez');
+  });
+
+  it('decodes BOM-less UTF-16BE via null-byte heuristics', async () => {
+    const bytes = encodeUtf16(UNICODE_GED, { bigEndian: true, bom: false });
+    const text = await readFileWithEncoding(new Blob([bytes]));
+    const { project, counts } = importGedcom(text);
+
+    expect(counts.persons).to.equal(1);
+    expect(displayName(project.persons[0])).to.equal('Inés Nuñez');
+  });
+
+  it('decodes UTF-8 with a BOM', async () => {
+    const body = new TextEncoder().encode(MINIMAL);
+    const bytes = new Uint8Array(3 + body.length);
+    bytes.set([0xef, 0xbb, 0xbf], 0);
+    bytes.set(body, 3);
+
+    const text = await readFileWithEncoding(new Blob([bytes]));
+    const { counts } = importGedcom(text);
+    expect(counts.persons).to.equal(3);
+  });
+
+  it('falls back to windows-1252 when 1 CHAR ANSEL or ANSI is declared', () => {
+    // '0 HEAD\r\n1 CHAR ANSI\r\n0 @I1@ INDI\r\n1 NAME José /Martín/\r\n0 TRLR\r\n'
+    // In Latin-1 / Windows-1252: é = 0xe9, í = 0xed
+    const raw = '0 HEAD\r\n1 CHAR ANSI\r\n0 @I1@ INDI\r\n1 NAME Jos\xe9 /Mart\xedn/\r\n0 TRLR\r\n';
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+
+    const { project, counts } = importGedcom(decodeGedcom(bytes));
+    expect(counts.persons).to.equal(1);
+    expect(displayName(project.persons[0])).to.equal('José Martín');
   });
 });
 

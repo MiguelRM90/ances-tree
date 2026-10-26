@@ -29,9 +29,9 @@ This skill covers working with the native GEDCOM parser and generator in `src/do
 
 3. **Character Encodings**:
 
-   - GEDCOM 5.5.1 allows `UTF-8`, `ASCII`, and legacy `ANSEL`.
+   - GEDCOM 5.5.1 allows `UTF-8`, `UNICODE` (UTF-16LE/BE), `ASCII`, `ANSI`, and legacy `ANSEL`.
    - GEDCOM 7.0 requires strict `UTF-8`.
-   - If `CHAR ANSEL` is encountered, issue a user warning regarding accented characters and fall back to Latin-1 approximations.
+   - `decodeGedcom` and `readFileWithEncoding` in `parser.js` inspect BOMs (`FF FE`, `FE FF`, `EF BB BF`), UTF-16 null-byte heuristics, and `1 CHAR` headers (`UNICODE` -> `utf-16le`, `ANSEL`/`ANSI`/`ASCII` -> `windows-1252`, default `utf-8`).
 
 4. **Line Splitting, Continuation, and Escaping**:
    - GEDCOM 5.5.1 enforces 255-character line length limits via `CONT` and `CONC`.
