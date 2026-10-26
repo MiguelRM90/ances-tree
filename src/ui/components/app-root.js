@@ -791,6 +791,7 @@ export class AppRoot extends HTMLElement {
       el('button', { class: 'primary', text: S.welcome.newProject, attrs: { type: 'button' } }),
       el('button', { text: S.welcome.openProject, attrs: { type: 'button' } }),
       el('button', { text: S.welcome.importArchive, attrs: { type: 'button' } }),
+      el('button', { text: S.welcome.trySample, attrs: { type: 'button' } }),
     ];
 
     buttons[0].addEventListener('click', () =>
@@ -798,6 +799,7 @@ export class AppRoot extends HTMLElement {
     );
     buttons[1].addEventListener('click', () => this.#run(() => actions.openProject()));
     buttons[2].addEventListener('click', () => this.#startImport());
+    buttons[3].addEventListener('click', () => this.#run(() => actions.openSampleProject(locale)));
 
     if (last) {
       const reopen = el('button', {
@@ -860,6 +862,9 @@ export class AppRoot extends HTMLElement {
     const importZip = el('button', { text: S.welcome.importArchive, attrs: { type: 'button' } });
     importZip.addEventListener('click', () => this.#startImport());
 
+    const trySample = el('button', { text: S.welcome.trySample, attrs: { type: 'button' } });
+    trySample.addEventListener('click', () => this.#run(() => actions.openSampleProject(locale)));
+
     clear(this.#surface).append(
       el('div', {
         // Two names, two entries: el() hands the list to classList.add, which
@@ -881,7 +886,11 @@ export class AppRoot extends HTMLElement {
 
           el('div', {
             class: 'actions',
-            children: [el('div', { class: 'named', children: [name, create] }), importZip],
+            children: [
+              el('div', { class: 'named', children: [name, create] }),
+              importZip,
+              trySample,
+            ],
           }),
         ],
       }),

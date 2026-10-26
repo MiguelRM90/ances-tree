@@ -21,6 +21,7 @@ export const en = {
     newProject: 'New family',
     openProject: 'Open a folder',
     importArchive: 'Import a ZIP',
+    trySample: 'Try with a sample family',
     reopen: 'Reopen',
     pickFolderHint: 'Choose an empty folder. AncesTree will create the project files inside it.',
     defaultName: 'My family',

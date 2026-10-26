@@ -61,6 +61,20 @@ export async function createProjectIn(dirHandle, title) {
 }
 
 /**
+ * Creates and writes a pre-populated sample project in browser storage so the
+ * user can explore a full tree in one click without picking a folder first.
+ */
+export async function createSampleProjectInStorage(project) {
+  const dirHandle = await createBrowserFolder(project.project.title);
+  await dirHandle.getDirectoryHandle(PHOTOS_DIR, { create: true });
+  await dirHandle.getDirectoryHandle(DOCUMENTS_DIR, { create: true });
+  await dirHandle.getDirectoryHandle(BACKUPS_DIR, { create: true });
+  const saved = await writeProject(dirHandle, project, { rotate: false });
+
+  return { project: saved, dirHandle };
+}
+
+/**
  * Loads an existing project.
  *
  * A folder without family.json is not one of ours, which is the only check

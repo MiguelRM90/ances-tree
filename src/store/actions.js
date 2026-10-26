@@ -10,6 +10,7 @@ import {
   pickDirectory,
   newDirectory,
   createProjectIn,
+  createSampleProjectInStorage,
   StorageError,
 } from '../storage/project-store.js';
 import { storageMode, StorageMode, isBrowserStorage } from '../storage/backend.js';
@@ -50,6 +51,7 @@ import {
   MediaRole,
   ParentType,
 } from '../domain/model/factories.js';
+import { createSampleProject } from '../domain/model/sample-family.js';
 import { unionsOf, partnerIn, photosOf } from '../domain/graph/queries.js';
 
 export { recentProjects, storageMode, StorageMode, isBrowserStorage, storageEstimate };
@@ -83,6 +85,17 @@ export async function openProject() {
 
   await store.open(dirHandle);
   return { ok: true };
+}
+
+/**
+ * Opens a pre-populated sample family in one click so anyone can explore a
+ * complete tree without setting up a folder or entering people from scratch.
+ */
+export async function openSampleProject(locale = 'en') {
+  const sample = createSampleProject({ locale });
+  const { project, dirHandle } = await createSampleProjectInStorage(sample);
+  await store.adoptNew(project, dirHandle);
+  return { ok: true, folderName: dirHandle.name };
 }
 
 // --- Browser storage -------------------------------------------------------

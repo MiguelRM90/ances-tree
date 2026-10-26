@@ -6,6 +6,9 @@ import { parseDate } from '../src/domain/date/parse.js';
 import { formatDate } from '../src/domain/date/format.js';
 import { displayName } from '../src/domain/graph/queries.js';
 import { createPerson, createPlaceholder, createProject } from '../src/domain/model/factories.js';
+import { createSampleProject } from '../src/domain/model/sample-family.js';
+import { buildIndexes } from '../src/domain/graph/indexes.js';
+import { validateAll, validateBlocking } from '../src/domain/validation/engine.js';
 import { exportGedcom } from '../src/domain/gedcom/export.js';
 import { importGedcom } from '../src/domain/gedcom/import.js';
 import { store } from '../src/store/store.js';
@@ -146,5 +149,25 @@ describe('Phase 3 — Quality, i18n, and Maintainability', function () {
     expect(messageMatch).to.not.equal(null);
     expect(messageMatch[0]).to.include('skip-waiting');
     expect(messageMatch[0]).to.include('skipWaiting');
+  });
+
+  it('3.6 builds and opens the one-click sample family archive with rich genealogical features', async () => {
+    const sample = createSampleProject({ locale: 'es' });
+    expect(sample.persons).to.have.lengthOf(16);
+    expect(sample.unions).to.have.lengthOf(6);
+
+    const graph = buildIndexes(sample);
+    expect(validateBlocking(graph)).to.have.lengthOf(0);
+
+    const issues = validateAll(graph);
+    expect(issues.some((i) => i.ruleId === 'CONSANGUINEOUS_UNION')).to.equal(true);
+
+    const result = await actions.openSampleProject('es');
+    created.push(result.folderName);
+
+    expect(result.ok).to.equal(true);
+    expect(store.isOpen).to.equal(true);
+    expect(store.graph.persons.get(store.focalPersonId).firstName).to.equal('Elena');
+    expect(store.graph.persons.size).to.equal(16);
   });
 });

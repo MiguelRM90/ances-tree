@@ -1,7 +1,7 @@
 {
   "name": "ancestree",
   "version": "0.1.0",
-  "description": "A family tree that lives on your own computer. No backend, no accounts.",
+  "description": "Local-first genealogy PWA built with 100% Vanilla JS & Web Components. Zero runtime dependencies, custom streaming ZIP & GEDCOM 5.5.1 engines, File System Access API + OPFS.",
   "type": "module",
   "private": true,
   "license": "MIT",

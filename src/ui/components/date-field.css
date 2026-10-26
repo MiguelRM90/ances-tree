@@ -3,7 +3,8 @@
   gap: var(--s-2);
 }
 
-.controls {
+.controls,
+.controls-slot {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
