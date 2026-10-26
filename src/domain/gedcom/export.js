@@ -250,7 +250,12 @@ function writeFamily(out, family, { project, xref }) {
   const ambiguous = parents.length === 2 && !(husband?.sex === 'M' && wife?.sex === 'F');
   if (ambiguous) out.text(1, 'NOTE', 'HUSB/WIFE assigned by record order, not by sex.');
 
-  for (const link of family.children) out.line(1, 'CHIL', xref.get(link.childId));
+  const seenChildren = new Set();
+  for (const link of family.children) {
+    if (seenChildren.has(link.childId)) continue;
+    seenChildren.add(link.childId);
+    out.line(1, 'CHIL', xref.get(link.childId));
+  }
 
   const union = family.union;
   if (!union) return;
@@ -317,6 +322,18 @@ function writeEvent(out, tag, event) {
 // --- Writing ---------------------------------------------------------------
 
 const POINTER_TAGS = new Set(['FAMC', 'FAMS', 'OBJE', 'HUSB', 'WIFE', 'CHIL']);
+const CALENDAR_ESCAPE = /^(@#D[^@]+@)(.*)$/i;
+
+function escapeGedcomValue(tag, rawValue) {
+  if (POINTER_TAGS.has(tag)) return rawValue;
+  if (tag === 'DATE') {
+    const match = CALENDAR_ESCAPE.exec(rawValue);
+    if (match) {
+      return `${match[1]}${match[2].replace(/@/g, '@@')}`;
+    }
+  }
+  return rawValue.replace(/@/g, '@@');
+}
 
 class Writer {
   #lines = [];
@@ -329,7 +346,7 @@ class Writer {
     if (!isRecordStart && filtered.length >= 2) {
       const tag = filtered[0];
       const rawValue = String(filtered[1]).replace(/[\r\n]+/g, ' ');
-      filtered[1] = POINTER_TAGS.has(tag) ? rawValue : rawValue.replace(/@/g, '@@');
+      filtered[1] = escapeGedcomValue(tag, rawValue);
     }
 
     const text = [String(level), ...filtered].join(' ');
@@ -362,9 +379,12 @@ class Writer {
 }
 
 function split(text, size) {
-  if (text.length <= size) return [text];
+  const chars = Array.from(text);
+  if (chars.length <= size) return [text];
   const chunks = [];
-  for (let at = 0; at < text.length; at += size) chunks.push(text.slice(at, at + size));
+  for (let at = 0; at < chars.length; at += size) {
+    chunks.push(chars.slice(at, at + size).join(''));
+  }
   return chunks;
 }
 

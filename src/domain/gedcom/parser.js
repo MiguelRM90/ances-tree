@@ -9,7 +9,7 @@
  */
 
 /** LEVEL [XREF] TAG [VALUE] — the value may contain anything at all. */
-const LINE = /^(\d+)\s+(?:(@[^@\s]+@)\s+)?([A-Za-z0-9_]+)(?:\s(.*))?$/;
+const LINE = /^\s*(\d+)\s+(?:(@[^@\s]+@)\s+)?([A-Za-z0-9_]+)(?:\s(.*))?$/;
 
 /**
  * @typedef {Object} GedcomNode

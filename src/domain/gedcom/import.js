@@ -48,34 +48,48 @@ export function importGedcom(text, { title = 'Imported family' } = {}) {
   const warnings = errors.map((error) => ({ ...error }));
 
   const project = createProject({ title });
+  const head = records.find((r) => r.tag === 'HEAD');
+  const noteTitle = childValue(head, 'NOTE').trim();
+  if (noteTitle && title === 'Imported family') {
+    project.project.title = noteTitle;
+  }
+
   const personByXref = new Map();
+  const noteByXref = new Map();
+
+  for (const record of records.filter((r) => r.tag === 'NOTE' && r.xref)) {
+    noteByXref.set(record.xref, record.value);
+  }
 
   // --- People ---------------------------------------------------------------
   for (const record of records.filter((r) => r.tag === 'INDI')) {
-    const person = readIndividual(record, warnings);
+    const person = readIndividual(record, { warnings, noteByXref });
     personByXref.set(record.xref, person);
     project.persons.push(person);
   }
 
   // --- Media ----------------------------------------------------------------
   const mediaByXref = new Map();
-  for (const record of records.filter((r) => r.tag === 'OBJE')) {
+  for (const record of records.filter((r) => r.tag === 'OBJE' && r.xref)) {
     const item = readObject(record);
     if (!item) continue;
     mediaByXref.set(record.xref, item);
     project.media.push(item);
   }
 
-  attachMedia(records, personByXref, mediaByXref);
+  attachMedia(records, personByXref, mediaByXref, project);
 
   // --- Families -------------------------------------------------------------
   const unionByXref = new Map();
   for (const record of records.filter((r) => r.tag === 'FAM')) {
-    readFamily(record, { project, personByXref, unionByXref, warnings });
+    readFamily(record, { project, personByXref, unionByXref, noteByXref, warnings });
   }
 
   // FAMC lives on the individual and carries the pedigree, so the parent links
-  // are built from that side rather than from CHIL.
+  // are built from that side first, and any CHIL pointers on FAM that were not
+  // reciprocated by a FAMC are filled in afterwards.
+  const linkedPairs = new Set();
+
   for (const record of records.filter((r) => r.tag === 'INDI')) {
     const person = personByXref.get(record.xref);
 
@@ -86,13 +100,21 @@ export function importGedcom(text, { title = 'Imported family' } = {}) {
         continue;
       }
 
-      const type = PEDIGREE[childValue(famc, 'PEDI').toLowerCase()] ?? ParentType.BIOLOGICAL;
+      const rel = childValue(famc, '_REL').toUpperCase();
+      const type =
+        rel === ParentType.STEP || rel === ParentType.GUARDIAN
+          ? rel
+          : (PEDIGREE[childValue(famc, 'PEDI').toLowerCase()] ?? ParentType.BIOLOGICAL);
       const certainty = readCertainty(childValue(famc, '_CERT'));
 
       // One edge per parent: the format pins one pedigree on the couple, so
       // both parents get the same one. That loss is the format's, and it is
       // recorded in gedcom-mapping.md rather than hidden.
       for (const parentId of family.parentIds) {
+        const key = `${parentId}:${person.id}`;
+        if (linkedPairs.has(key)) continue;
+        linkedPairs.add(key);
+
         project.parentChildren.push(
           createParentChild({
             parentId,
@@ -100,6 +122,32 @@ export function importGedcom(text, { title = 'Imported family' } = {}) {
             unionId: family.unionId,
             type,
             certainty,
+          }),
+        );
+      }
+    }
+  }
+
+  for (const record of records.filter((r) => r.tag === 'FAM')) {
+    const family = unionByXref.get(record.xref);
+    if (!family || family.parentIds.length === 0) continue;
+
+    for (const chil of children(record, 'CHIL')) {
+      const childPerson = personByXref.get(chil.value);
+      if (!childPerson) continue;
+
+      for (const parentId of family.parentIds) {
+        const key = `${parentId}:${childPerson.id}`;
+        if (linkedPairs.has(key)) continue;
+        linkedPairs.add(key);
+
+        project.parentChildren.push(
+          createParentChild({
+            parentId,
+            childId: childPerson.id,
+            unionId: family.unionId,
+            type: ParentType.BIOLOGICAL,
+            certainty: Certainty.CONFIRMED,
           }),
         );
       }
@@ -124,7 +172,7 @@ export function importGedcom(text, { title = 'Imported family' } = {}) {
 
 // --- Individuals -----------------------------------------------------------
 
-function readIndividual(record, warnings) {
+function readIndividual(record, { warnings, noteByXref }) {
   const name = child(record, 'NAME');
   const { firstName, lastName, secondLastName } = readName(name);
 
@@ -145,10 +193,15 @@ function readIndividual(record, warnings) {
     // A record with no name at all is the usual way of saying "somebody was
     // here and we do not know who".
     isPlaceholder: !name && !childValue(record, 'BIRT'),
-    notes: children(record, 'NOTE')
-      .map((note) => note.value)
-      .join('\n\n'),
+    notes: readNotes(record, noteByXref),
   });
+}
+
+function readNotes(record, noteByXref, ignoreText = '') {
+  return children(record, 'NOTE')
+    .map((note) => (noteByXref?.has(note.value) ? noteByXref.get(note.value) : note.value))
+    .filter((text) => text !== '' && text !== ignoreText)
+    .join('\n\n');
 }
 
 /**
@@ -201,7 +254,7 @@ const readCertainty = (value) =>
 
 // --- Families --------------------------------------------------------------
 
-function readFamily(record, { project, personByXref, unionByXref, warnings }) {
+function readFamily(record, { project, personByXref, unionByXref, noteByXref, warnings }) {
   const husband = personByXref.get(childValue(record, 'HUSB'));
   const wife = personByXref.get(childValue(record, 'WIFE'));
   const parents = [husband, wife].filter(Boolean);
@@ -235,9 +288,7 @@ function readFamily(record, { project, personByXref, unionByXref, warnings }) {
         : UnionType.UNKNOWN,
     startDate: marriage ? parseDate(childValue(marriage, 'DATE')) : null,
     endDate: divorce ? parseDate(childValue(divorce, 'DATE')) : null,
-    notes: children(record, 'NOTE')
-      .map((note) => note.value)
-      .join('\n\n'),
+    notes: readNotes(record, noteByXref, 'HUSB/WIFE assigned by record order, not by sex.'),
   });
 
   project.unions.push(union);
@@ -291,6 +342,8 @@ function readObject(record) {
     ? DOC_MIMES[form] || DOC_MIMES[ext] || 'application/octet-stream'
     : `image/${form || 'jpeg'}`;
 
+  const takenRaw = readObjectDate(record, file);
+
   return createMediaObject({
     kind: isDoc ? MediaKind.DOCUMENT : MediaKind.PHOTO,
     path,
@@ -298,16 +351,32 @@ function readObject(record) {
     mime,
     bytes: 0,
     caption: childValue(file, 'TITL') || childValue(record, 'TITL'),
+    takenDate: takenRaw ? parseDate(takenRaw) : null,
   });
 }
 
-function attachMedia(records, personByXref, mediaByXref) {
+function readObjectDate(record, file) {
+  const directDate = childValue(file, 'DATE') || childValue(record, 'DATE');
+  if (directDate) return directDate;
+
+  for (const note of children(record, 'NOTE')) {
+    const match = /^Taken\s+(.+)$/i.exec(note.value.trim());
+    if (match) return match[1].trim();
+  }
+  return '';
+}
+
+function attachMedia(records, personByXref, mediaByXref, project) {
   for (const record of records.filter((r) => r.tag === 'INDI')) {
     const person = personByXref.get(record.xref);
     if (!person) continue;
 
     for (const reference of children(record, 'OBJE')) {
-      const item = mediaByXref.get(reference.value);
+      let item = mediaByXref.get(reference.value);
+      if (!item && !reference.value) {
+        item = readObject(reference);
+        if (item) project.media.push(item);
+      }
       if (!item) continue;
 
       const role = childValue(reference, '_ROLE');

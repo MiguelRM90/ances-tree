@@ -106,7 +106,7 @@ refuses to open.
 ```bash
 pnpm install
 pnpm dev         # http://localhost:5173/ances-tree/
-pnpm test        # 325 tests, in a real browser
+pnpm test        # 333 tests, in a real browser
 pnpm run lint
 pnpm run build   # dist/, ready for GitHub Pages
 ```

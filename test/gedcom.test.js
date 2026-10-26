@@ -63,8 +63,31 @@ describe('GEDCOM export', () => {
     expect(has(text, '1 HUSB @I1@')).to.equal(true);
     expect(has(text, '1 WIFE @I2@')).to.equal(true);
     expect(has(text, '1 CHIL @I3@')).to.equal(true);
+    expect(lines(text).filter((l) => l === '1 CHIL @I3@')).to.have.lengthOf(1);
     expect(has(text, '1 FAMC @F1@')).to.equal(true);
     expect(has(text, '1 FAMS @F1@')).to.equal(true);
+  });
+
+  it('preserves calendar escapes on DATE while escaping literal at-signs', () => {
+    const subject = person('X', { born: '@#DJULIAN@ 15 MAR 1582' });
+    subject.notes = 'Contact user@example.com';
+    const text = write(project({ persons: [subject] }));
+
+    expect(has(text, '2 DATE @#DJULIAN@ 15 MAR 1582')).to.equal(true);
+    expect(has(text, '1 NOTE Contact user@@example.com')).to.equal(true);
+  });
+
+  it('does not split surrogate pairs across CONC boundaries', () => {
+    const subject = person('X');
+    subject.notes = `${'a'.repeat(123)}𐐷${'b'.repeat(50)}`;
+    const text = write(project({ persons: [subject] }));
+
+    for (const line of lines(text)) {
+      // An unpaired surrogate would serialize to U+FFFD or match high/low孤立 surrogates
+      expect(
+        /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(line),
+      ).to.equal(false);
+    }
   });
 
   /**
